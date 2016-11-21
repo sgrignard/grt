@@ -18,6 +18,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "WarningLog.h"
 
 namespace GRT{
@@ -33,6 +34,11 @@ bool WarningLog::enableLogging(bool loggingEnabled){
 bool WarningLog::registerObserver(Observer< WarningLogMessage > &observer){
     observerManager.registerObserver( observer );
     return true;
+}
+
+bool WarningLog::removeObserver(Observer< WarningLogMessage > &observer)
+{
+    return observerManager.removeObserver(observer);
 }
 
 } //End of namespace GRT

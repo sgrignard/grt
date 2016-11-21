@@ -18,9 +18,10 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "TestingLog.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
 
 bool TestingLog::testingLoggingEnabled = true;
 ObserverManager< TestingLogMessage > TestingLog::observerManager;
@@ -35,4 +36,9 @@ bool TestingLog::registerObserver(Observer< TestingLogMessage > &observer){
     return true;
 }
 
-} //End of namespace GRT
+bool TestingLog::removeObserver(Observer< TestingLogMessage > &observer)
+{
+    return observerManager.removeObserver(observer);
+}
+
+GRT_END_NAMESPACE

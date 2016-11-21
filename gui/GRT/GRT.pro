@@ -51,13 +51,21 @@ macx{
  #Add the custom resources file
  ICON = Resources/OSX/GRT.icns
 
- #Flag that we want to use the GRT library
+ #Flag that we want to use a pre-built version of the GRT library (this should be installed in /user/local/lib
  USE_GRT_LIB = "true"
+
+ #Flag that we want to include the GRT library directly as source code
  #USE_GRT_SOURCE = "true"
 }
 
+android {
+    #Add the base oscpack directory
+    INCLUDEPATH += OSC/oscpack/include
+    USE_GRT_SOURCE_CODE = "true"
+}
+
 #Linux pkgconfig
-unix:!macx{
+unix:!macx:!android{
  #Add the defauly include and lib directories (we assume boost and GRT are installed here)
  INCLUDEPATH += /usr/local/include
  LIBS += -L/usr/local/lib
@@ -69,8 +77,10 @@ unix:!macx{
  CONFIG += link_pkgconfig
  PKGCONFIG += grt
 
- #Flag that we want to use the GRT library
+ #Flag that we want to use a pre-built version of the GRT library (this should be installed in /user/local/lib
  #USE_GRT_LIB = "true"
+
+ #Flag that we want to include the GRT library directly as source code
  USE_GRT_SOURCE_CODE = "true"
 }
 

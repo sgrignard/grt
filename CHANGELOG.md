@@ -2,6 +2,57 @@
 
 This file contains some notes about significant changes to the GRT.
 
+# Version 0.2.3
+
+## 29th September 2016
+- **added RMSFilter class:** new filter class for root mean squared low pass filtering of data, in PreProcessing
+- **moved various PreProcessing init to PreProcessing base class:** moved several common init work to PreProcessing base class, such as module naming and init of logs
+
+## 18th September 2016
+- **improved MLP learning algorithm:** improved back propagation algorithm and added TANH function
+- **added Dict class:** added new dictionary class that can be used to dynamically store pairs of key-values, where keys are strings and values can be any type
+- **added unit tests:** added unit tests for MLP and Dict classes
+- **added XOR dataset:** added XOR dataset for regression
+
+# Version 0.2.2
+
+## 21th August 2016
+- **fixed minor bug in TimeSeriesClassificationData:** added if statement to catch K==0
+- **updated wiki:** migrating wiki from nickgillian.com/wiki to GRT github wiki page
+
+# Version 0.2.1
+
+## 11th August 2016
+- **fixed HMM continuous bug:** caused if downsampleFactor > timeseriesLength
+
+# Version 0.2.0
+
+## 7th August 2016
+- **depreciated saveModelToFile/loadModelFromFile functions, replaced with save/load functions**
+- **depreciated dataset partition function, replaced split function**
+
+# Version 0.1.0
+
+## 21th February 2016
+- **added new << operator to GestureRecognitionPipeline**: modules can now be added via: pipeline << ANBC();
+
+## 20th February 2016
+- **updated version to 0.1.0**, merged dev to master
+- **added unit tests**: unit tests can be run via the: *make test* command
+
+# Version 0.0.1
+
+## 20th February 2016
+- **moved to semantic versioning, set version to 0.0.1**
+
+## 19th Novemeber 2015
+- **moved swig files from GRT directory to jni directory**: The .i files were causing some issues for non-swig users, so moving them to the JNI directory to clean things up, updated
+.i file paths accordingly.
+- **updated revision number**: 19-Nov-2015
+
+## 2nd Novemeber 2015
+- **merged dev into master**: Added new tools directory with some command line tools for training/testing various pipelines. Updated DecisionTree logging functions.
+
 ## 7th July 2015
 - **merged pull request from terziman**: Fixed ParticleFilter cast issue by resolving type
 

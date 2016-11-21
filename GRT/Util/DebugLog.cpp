@@ -18,6 +18,7 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "DebugLog.h"
 
 namespace GRT{
@@ -33,6 +34,11 @@ bool DebugLog::enableLogging(bool loggingEnabled){
 bool DebugLog::registerObserver(Observer< DebugLogMessage > &observer){
     observerManager.registerObserver( observer );
     return true;
+}
+
+bool DebugLog::removeObserver(Observer< DebugLogMessage > &observer)
+{
+    return observerManager.removeObserver(observer);
 }
 
 } //End of namespace GRT

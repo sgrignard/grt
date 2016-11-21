@@ -31,7 +31,7 @@
 
 #include "GRTTypedefs.h"
 
-namespace GRT {
+GRT_BEGIN_NAMESPACE
 
 class TestInstanceResult{
 public:
@@ -91,11 +91,11 @@ public:
     /**
      Sets the training result for classification data. This will place the training mode into CLASSIFICATION_MODE.
 
-     @param unsigned int trainingIteration: the current training iteration (or epoch)
-     @param double accuracy: the accuracy for the current training iteration
+     @param trainingIteration: the current training iteration (or epoch)
+     @param accuracy: the accuracy for the current training iteration
      @return returns true if the training result was set successfully
      */
-    bool setClassificationResult(const unsigned int testIteration,const unsigned int classLabel,const unsigned int predictedClassLabel,const unsigned int unProcessedPredictedClassLabel,const VectorDouble &classLikelihoods,const VectorDouble &classDistances){
+    bool setClassificationResult(const unsigned int testIteration,const unsigned int classLabel,const unsigned int predictedClassLabel,const unsigned int unProcessedPredictedClassLabel,const VectorFloat &classLikelihoods,const VectorFloat &classDistances){
 		this->testMode = CLASSIFICATION_MODE;
 		this->testIteration = testIteration;
 		this->classLabel = classLabel;
@@ -109,12 +109,12 @@ public:
     /**
      Sets the training result for regression data. This will place the training mode into REGRESSION_MODE.
 
-     @param unsigned int trainingIteration: the current training iteration (or epoch)
-     @param double totalSquaredTrainingError: the total squared training error for the current iteration
-     @param double rootMeanSquaredTrainingError: the root mean squared training error for the current iteration
+     @param trainingIteration: the current training iteration (or epoch)
+     @param totalSquaredTrainingError: the total squared training error for the current iteration
+     @param rootMeanSquaredTrainingError: the root mean squared training error for the current iteration
      @return returns true if the training result was set successfully
      */
-    bool setRegressionResult(const unsigned int testIteration,const VectorDouble &regressionData,const VectorDouble &targetData){
+    bool setRegressionResult(const unsigned int testIteration,const VectorFloat &regressionData,const VectorFloat &targetData){
         this->testMode = REGRESSION_MODE;
         this->testIteration = testIteration;
         this->regressionData = regressionData;
@@ -141,7 +141,7 @@ public:
     }
 
     /**
-     Gets the class label.
+     Gets the class label. This is only useful in CLASSIFICATION_MODE.
 
      @return returns the class label
      */
@@ -150,7 +150,7 @@ public:
     }
 
     /**
-     Gets the predicted class label.
+     Gets the predicted class label. This is only useful in CLASSIFICATION_MODE.
 
      @return returns the predicted class label
      */
@@ -159,13 +159,13 @@ public:
     }
 
     /**
-     Gets the maximum likelihood.
+     Gets the maximum likelihood. This is only useful in CLASSIFICATION_MODE.
 
      @return returns the maximum likelihood
      */
-    double getMaximumLikelihood() const{
-        double maxLikelihood = 0;
-        for(unsigned int i=0; i<classLikelihoods.size(); i++){
+    Float getMaximumLikelihood() const{
+        Float maxLikelihood = 0;
+        for(size_t i=0; i<classLikelihoods.size(); i++){
             if( classLikelihoods[i] > maxLikelihood ){
                 maxLikelihood = classLikelihoods[i];
             }
@@ -178,13 +178,31 @@ public:
      
      @return returns the squared error between the regression estimate and the target data
      */
-    double getSquaredError() const{
-        double sum = 0;
+    Float getSquaredError() const{
+        Float sum = 0;
         if( regressionData.size() != targetData.size() ) return 0;
-        for(unsigned int i=0; i<regressionData.size(); i++){
+        for(size_t i=0; i<regressionData.size(); i++){
             sum += (regressionData[i]-targetData[i])*(regressionData[i]-targetData[i]);
         }
         return sum;
+    }
+
+    /**
+     Gets the class likelihoods vector. This is only useful in CLASSIFICATION_MODE.
+     
+     @return returns the class likelihoods vector
+     */
+    VectorFloat getClassLikelihoods() const {
+        return classLikelihoods;
+    }
+
+    /**
+     Gets the class distances vector. This is only useful in CLASSIFICATION_MODE.
+     
+     @return returns the class distances vector
+     */
+    VectorFloat getDistances() const {
+        return classDistances;
     }
 
 protected:
@@ -193,10 +211,10 @@ protected:
 	unsigned int classLabel;
 	unsigned int predictedClassLabel;
 	unsigned int unProcessedPredictedClassLabel;
-	VectorDouble classLikelihoods;
-	VectorDouble classDistances;
-	VectorDouble regressionData;
-	VectorDouble targetData;
+	VectorFloat classLikelihoods;
+	VectorFloat classDistances;
+	VectorFloat regressionData;
+	VectorFloat targetData;
     
 public:
     
@@ -204,6 +222,6 @@ public:
 
 };
 
-}//End of namespace GRT
+GRT_END_NAMESPACE
 
 #endif //GRT_TEST_INSTANCE_RESULT_HEADER

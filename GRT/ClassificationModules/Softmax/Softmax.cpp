@@ -2,70 +2,63 @@
 GRT MIT License
 Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
 subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "Softmax.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
+
+//Define the string that will be used to indentify the object
+std::string Softmax::id = "Softmax";
+std::string Softmax::getId() { return Softmax::id; }
 
 //Register the Softmax module with the Classifier base class
-RegisterClassifierModule< Softmax >  Softmax::registerModule("Softmax");
+RegisterClassifierModule< Softmax >  Softmax::registerModule( getId() );
 
-Softmax::Softmax(const bool useScaling,const double learningRate,const double minChange,const UINT maxNumEpochs)
+Softmax::Softmax(const bool useScaling,const Float learningRate,const Float minChange,const UINT maxNumEpochs,const UINT batchSize) : Classifier( getId() )
 {
     this->useScaling = useScaling;
     this->learningRate = learningRate;
     this->minChange = minChange;
     this->maxNumEpochs = maxNumEpochs;
-    classType = "Softmax";
-    classifierType = classType;
+    this->batchSize = batchSize;
     classifierMode = STANDARD_CLASSIFIER_MODE;
-    debugLog.setProceedingText("[DEBUG Softmax]");
-    errorLog.setProceedingText("[ERROR Softmax]");
-    trainingLog.setProceedingText("[TRAINING Softmax]");
-    warningLog.setProceedingText("[WARNING Softmax]");
 }
-    
-Softmax::Softmax(const Softmax &rhs){
-    classType = "Softmax";
-    classifierType = classType;
+
+Softmax::Softmax(const Softmax &rhs) : Classifier( getId() )
+{
     classifierMode = STANDARD_CLASSIFIER_MODE;
-    debugLog.setProceedingText("[DEBUG Softmax]");
-    errorLog.setProceedingText("[ERROR Softmax]");
-    trainingLog.setProceedingText("[TRAINING Softmax]");
-    warningLog.setProceedingText("[WARNING Softmax]");
     *this = rhs;
 }
 
 Softmax::~Softmax(void)
 {
 }
-    
+
 Softmax& Softmax::operator=(const Softmax &rhs){
-	if( this != &rhs ){
-        this->learningRate = rhs.learningRate;
-        this->minChange = rhs.minChange;
-        this->maxNumEpochs = rhs.maxNumEpochs;
+    if( this != &rhs ){
+        this->batchSize = rhs.batchSize;
         this->models = rhs.models;
         
         //Copy the base classifier variables
         copyBaseVariables( (Classifier*)&rhs );
-	}
-	return *this;
+    }
+    return *this;
 }
 
 bool Softmax::deepCopyFrom(const Classifier *classifier){
@@ -75,9 +68,7 @@ bool Softmax::deepCopyFrom(const Classifier *classifier){
     if( this->getClassifierType() == classifier->getClassifierType() ){
         Softmax *ptr = (Softmax*)classifier;
         
-        this->learningRate = ptr->learningRate;
-        this->minChange = ptr->minChange;
-        this->maxNumEpochs = ptr->maxNumEpochs;
+        this->batchSize = ptr->batchSize;
         this->models = ptr->models;
         
         //Copy the base classifier variables
@@ -96,7 +87,7 @@ bool Softmax::train_(ClassificationData &trainingData){
     const unsigned int K = trainingData.getNumClasses();
     
     if( M == 0 ){
-        errorLog << "train_(ClassificationData &labelledTrainingData) - Training data has zero samples!" << endl;
+        errorLog << "train_(ClassificationData &labelledTrainingData) - Training data has zero samples!" << std::endl;
         return false;
     }
     
@@ -120,8 +111,8 @@ bool Softmax::train_(ClassificationData &trainingData){
         
         //Train the model
         if( !trainSoftmaxModel(classLabels[k],models[k],trainingData) ){
-            errorLog << "train(ClassificationData labelledTrainingData) - Failed to train model for class: " << classLabels[k] << endl;
-            return false;
+            errorLog << "train(ClassificationData labelledTrainingData) - Failed to train model for class: " << classLabels[k] << std::endl;
+                return false;
         }
     }
     
@@ -130,22 +121,22 @@ bool Softmax::train_(ClassificationData &trainingData){
     return trained;
 }
 
-bool Softmax::predict_(VectorDouble &inputVector){
+bool Softmax::predict_(VectorFloat &inputVector){
     
     if( !trained ){
-        errorLog << "predict_(VectorDouble &inputVector) - Model Not Trained!" << endl;
+        errorLog << "predict_(VectorFloat &inputVector) - Model Not Trained!" << std::endl;
         return false;
     }
     
     predictedClassLabel = 0;
-	maxLikelihood = -10000;
+    maxLikelihood = -10000;
     
     if( !trained ) return false;
     
-	if( inputVector.size() != numInputDimensions ){
-        errorLog << "predict_(VectorDouble &inputVector) - The size of the input vector (" << inputVector.size() << ") does not match the num features in the model (" << numInputDimensions << endl;
-		return false;
-	}
+    if( inputVector.size() != numInputDimensions ){
+        errorLog << "predict_(VectorFloat &inputVector) - The size of the input vector (" << inputVector.size() << ") does not match the num features in the model (" << numInputDimensions << std::endl;
+        return false;
+    }
     
     if( useScaling ){
         for(UINT n=0; n<numInputDimensions; n++){
@@ -157,11 +148,11 @@ bool Softmax::predict_(VectorDouble &inputVector){
     if( classDistances.size() != numClasses ) classDistances.resize(numClasses,0);
     
     //Loop over each class and compute the likelihood of the input data coming from class k. Pick the class with the highest likelihood
-    double sum = 0;
-    double bestEstimate = numeric_limits<double>::min();
+    Float sum = 0;
+    Float bestEstimate = -grt_numeric_limits< Float >::max();
     UINT bestIndex = 0;
     for(UINT k=0; k<numClasses; k++){
-        double estimate = models[k].compute( inputVector );
+        Float estimate = models[k].compute( inputVector );
         
         if( estimate > bestEstimate ){
             bestEstimate = estimate;
@@ -188,20 +179,22 @@ bool Softmax::predict_(VectorDouble &inputVector){
     
     return true;
 }
-    
+
 bool Softmax::trainSoftmaxModel(UINT classLabel,SoftmaxModel &model,ClassificationData &data){
     
-    double error = 0;
-    double errorSum = 0;
-    double lastErrorSum = 0;
-    double delta = 0;
-    UINT N = data.getNumDimensions();
-    UINT M = data.getNumSamples();
+    Float error = 0;
+    Float errorSum = 0;
+    Float lastErrorSum = 0;
+    Float delta = 0;
+    const UINT N = data.getNumDimensions();
+    const UINT M = data.getNumSamples();
     UINT iter = 0;
     bool keepTraining = true;
     Random random;
-    VectorDouble y(M);
-    vector< UINT > randomTrainingOrder(M);
+    VectorFloat y(M);
+    VectorFloat batchMean(N);
+    Vector< UINT > randomTrainingOrder(M);
+    Vector< VectorFloat > batchData(batchSize,VectorFloat(N));
     
     //Init the model
     model.init( classLabel,  N );
@@ -219,31 +212,51 @@ bool Softmax::trainSoftmaxModel(UINT classLabel,SoftmaxModel &model,Classificati
     }
     std::random_shuffle(randomTrainingOrder.begin(), randomTrainingOrder.end());
     
+    //Clear any previous training results
+    trainingResults.clear();
+    trainingResults.reserve( maxNumEpochs );
+    TrainingResult epochResult;
+
     //Run the main stochastic gradient descent training algorithm
     while( keepTraining ){
-        
+
         //Run one epoch of training using stochastic gradient descent
         errorSum = 0;
-        for(UINT m=0; m<M; m++){
-            
-            //Select the random sample
-            UINT i = randomTrainingOrder[m];
-            
-            //Compute the error, given the current weights
-            error = y[i] - model.compute( data[i].getSample() );
-            errorSum += error;
-            
-            //Update the weights
+        UINT m=0;
+        while( m < M ){
+          //Get the batch data for this update
+          UINT roundSize = m+batchSize < M ? batchSize : M-m;
+          batchMean.fill(0.0);
+          for(UINT i=0; i<roundSize; i++){
             for(UINT j=0; j<N; j++){
-                model.w[j] += learningRate  * error * data[i][j];
+              batchData[i][j] = data[ randomTrainingOrder[m+i] ][j];
+              batchMean[j] += batchData[i][j];
             }
-            model.w0 += learningRate  * error;
+          }
+
+          for(UINT j=0; j<N; j++) batchMean[j] /= roundSize;
+
+          //Compute the error on this batch, given the current weights
+          error = 0.0;
+          for(UINT i=0; i<roundSize; i++){
+            error += y[ randomTrainingOrder[m+i] ] - model.compute( batchData[i] );
+          }
+          error /= roundSize;
+          errorSum += error;
+
+          //Update the weights
+          for(UINT j=0; j<N; j++){
+            model.w[j] += learningRate  * error * batchMean[j];
+          }
+          model.w0 += learningRate  * error;
+
+          m += roundSize;
         }
-        
+
         //Compute the error
         delta = fabs( errorSum-lastErrorSum );
         lastErrorSum = errorSum;
-        
+
         //Check to see if we should stop
         if( delta <= minChange ){
             keepTraining = false;
@@ -253,12 +266,14 @@ bool Softmax::trainSoftmaxModel(UINT classLabel,SoftmaxModel &model,Classificati
             keepTraining = false;
         }
         
-        trainingLog << "Epoch: " << iter << " TotalError: " << errorSum << " Delta: " << delta << endl;
+        trainingLog << "Class: " << classLabel << " Epoch: " << iter << " TotalError: " << errorSum << " Delta: " << delta << std::endl;
+        epochResult.setClassificationResult( iter, errorSum, this );
+        trainingResults.push_back( epochResult );
     }
     
     return true;
 }
-    
+
 bool Softmax::clear(){
     
     //Clear the Classifier variables
@@ -269,40 +284,40 @@ bool Softmax::clear(){
     
     return true;
 }
-    
-bool Softmax::saveModelToFile(fstream &file) const{
+
+bool Softmax::save( std::fstream &file ) const{
     
     if(!file.is_open())
-	{
-		errorLog <<"loadModelFromFile(fstream &file) - The file is not open!" << endl;
-		return false;
-	}
+    {
+        errorLog <<"load(fstream &file) - The file is not open!" << std::endl;
+        return false;
+    }
     
-	//Write the header info
-	file<<"GRT_SOFTMAX_MODEL_FILE_V2.0\n";
+    //Write the header info
+    file<<"GRT_SOFTMAX_MODEL_FILE_V2.0\n";
     
     //Write the classifier settings to the file
     if( !Classifier::saveBaseSettingsToFile(file) ){
-        errorLog <<"saveModelToFile(fstream &file) - Failed to save classifier base settings to file!" << endl;
-		return false;
+        errorLog <<"save(fstream &file) - Failed to save classifier base settings to file!" << std::endl;
+        return false;
     }
     
     if( trained ){
         file << "Models:\n";
         for(UINT k=0; k<numClasses; k++){
-            file << "ClassLabel: " << models[k].classLabel << endl;
+            file << "ClassLabel: " << models[k].classLabel << std::endl;
             file << "Weights: " << models[k].w0;
             for(UINT n=0; n<numInputDimensions; n++){
                 file << " " << models[k].w[n];
             }
-            file << endl;
+            file << std::endl;
         }
     }
     
     return true;
 }
-    
-bool Softmax::loadModelFromFile(fstream &file){
+
+bool Softmax::load( std::fstream &file ){
     
     trained = false;
     numInputDimensions = 0;
@@ -312,7 +327,7 @@ bool Softmax::loadModelFromFile(fstream &file){
     
     if(!file.is_open())
     {
-        errorLog << "loadModelFromFile(string filename) - Could not open file to load model" << endl;
+        errorLog << "load(string filename) - Could not open file to load model" << std::endl;
         return false;
     }
     
@@ -327,13 +342,13 @@ bool Softmax::loadModelFromFile(fstream &file){
     
     //Find the file type header
     if(word != "GRT_SOFTMAX_MODEL_FILE_V2.0"){
-        errorLog << "loadModelFromFile(string filename) - Could not find Model File Header" << endl;
+        errorLog << "load(string filename) - Could not find Model File Header" << std::endl;
         return false;
     }
     
     //Load the base settings from the file
     if( !Classifier::loadBaseSettingsFromFile(file) ){
-        errorLog << "loadModelFromFile(string filename) - Failed to load base settings from file!" << endl;
+        errorLog << "load(string filename) - Failed to load base settings from file!" << std::endl;
         return false;
     }
     
@@ -345,23 +360,23 @@ bool Softmax::loadModelFromFile(fstream &file){
         //Load the models
         file >> word;
         if(word != "Models:"){
-            errorLog << "loadModelFromFile(string filename) - Could not find the Models!" << endl;
+            errorLog << "load(string filename) - Could not find the Models!" << std::endl;
             return false;
         }
         
         for(UINT k=0; k<numClasses; k++){
             file >> word;
             if(word != "ClassLabel:"){
-                errorLog << "loadModelFromFile(string filename) - Could not find the ClassLabel for model: " << k << "!" << endl;
-                return false;
+                errorLog << "load(string filename) - Could not find the ClassLabel for model: " << k << "!" << std::endl;
+                    return false;
             }
             file >> models[k].classLabel;
             classLabels[k] = models[k].classLabel;
             
             file >> word;
             if(word != "Weights:"){
-                errorLog << "loadModelFromFile(string filename) - Could not find the Weights for model: " << k << "!" << endl;
-                return false;
+                errorLog << "load(string filename) - Could not find the Weights for model: " << k << "!" << std::endl;
+                    return false;
             }
             file >>  models[k].w0;
             
@@ -384,39 +399,39 @@ bool Softmax::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
-vector< SoftmaxModel > Softmax::getModels() const{
+
+Vector< SoftmaxModel > Softmax::getModels() const{
     return models;
 }
+
+bool Softmax::loadLegacyModelFromFile( std::fstream &file ){
     
-bool Softmax::loadLegacyModelFromFile( fstream &file ){
-    
-    string word;
+    std::string word;
     
     file >> word;
     if(word != "NumFeatures:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find NumFeatures!" << endl;
+        errorLog << "load(string filename) - Could not find NumFeatures!" << std::endl;
         return false;
     }
     file >> numInputDimensions;
     
     file >> word;
     if(word != "NumClasses:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find NumClasses!" << endl;
+        errorLog << "load(string filename) - Could not find NumClasses!" << std::endl;
         return false;
     }
     file >> numClasses;
     
     file >> word;
     if(word != "UseScaling:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find UseScaling!" << endl;
+        errorLog << "load(string filename) - Could not find UseScaling!" << std::endl;
         return false;
     }
     file >> useScaling;
     
     file >> word;
     if(word != "UseNullRejection:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find UseNullRejection!" << endl;
+        errorLog << "load(string filename) - Could not find UseNullRejection!" << std::endl;
         return false;
     }
     file >> useNullRejection;
@@ -428,7 +443,7 @@ bool Softmax::loadLegacyModelFromFile( fstream &file ){
         
         file >> word;
         if(word != "Ranges:"){
-            errorLog << "loadModelFromFile(string filename) - Could not find the Ranges!" << endl;
+            errorLog << "load(string filename) - Could not find the Ranges!" << std::endl;
             return false;
         }
         for(UINT n=0; n<ranges.size(); n++){
@@ -444,23 +459,23 @@ bool Softmax::loadLegacyModelFromFile( fstream &file ){
     //Load the models
     file >> word;
     if(word != "Models:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find the Models!" << endl;
+        errorLog << "load(string filename) - Could not find the Models!" << std::endl;
         return false;
     }
     
     for(UINT k=0; k<numClasses; k++){
         file >> word;
         if(word != "ClassLabel:"){
-            errorLog << "loadModelFromFile(string filename) - Could not find the ClassLabel for model: " << k << "!" << endl;
-            return false;
+            errorLog << "load(string filename) - Could not find the ClassLabel for model: " << k << "!" << std::endl;
+                return false;
         }
         file >> models[k].classLabel;
         classLabels[k] = models[k].classLabel;
         
         file >> word;
         if(word != "Weights:"){
-            errorLog << "loadModelFromFile(string filename) - Could not find the Weights for model: " << k << "!" << endl;
-            return false;
+            errorLog << "load(string filename) - Could not find the Weights for model: " << k << "!" << std::endl;
+                return false;
         }
         file >>  models[k].w0;
         
@@ -486,5 +501,4 @@ bool Softmax::loadLegacyModelFromFile( fstream &file ){
     return true;
 }
 
-} //End of namespace GRT
-
+GRT_END_NAMESPACE

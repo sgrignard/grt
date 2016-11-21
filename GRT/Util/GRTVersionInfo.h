@@ -21,8 +21,11 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef GRT_VERSION_INFO_HEADER
 #define GRT_VERSION_INFO_HEADER
 
-#define GRT_VERSION "1.0"
-#define GRT_REVISION "03-04-15"
+#define GRT_VERSION_MAJOR 0
+#define GRT_VERSION_MINOR 2
+#define GRT_VERSION_PATCH 3
+#define GRT_VERSION "0.2.3"
+#define GRT_REVISION "18-Sep-2016"
 
 //Workout which platform we are using
 #if defined( __WIN32__ ) || defined( _WIN32 ) || defined(WIN32)

@@ -18,9 +18,14 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "InfoLog.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
+
+#ifdef GRT_CXX11_ENABLED
+std::mutex Log::logMutex;
+#endif
 
 bool InfoLog::infoLoggingEnabled = true;
 ObserverManager< InfoLogMessage > InfoLog::observerManager;
@@ -35,4 +40,9 @@ bool InfoLog::registerObserver(Observer< InfoLogMessage > &observer){
     return true;
 }
 
-} //End of namespace GRT
+bool InfoLog::removeObserver(Observer< InfoLogMessage > &observer)
+{
+    return observerManager.removeObserver(observer);
+}
+
+GRT_END_NAMESPACE

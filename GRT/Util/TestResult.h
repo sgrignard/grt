@@ -9,10 +9,10 @@
 #ifndef GRT_TEST_RESULT_HEADER
 #define GRT_TEST_RESULT_HEADER
 
-#include "GRTTypedefs.h"
-#include "MatrixDouble.h"
+#include "../DataStructures/VectorFloat.h"
+#include "../DataStructures/MatrixFloat.h"
 
-namespace GRT {
+GRT_BEGIN_NAMESPACE
 
 class TestResult{
 public:
@@ -63,20 +63,20 @@ public:
     
     unsigned int numTrainingSamples;
     unsigned int numTestSamples;
-    double accuracy;
-    double rmsError;
-    double totalSquaredError;
-    double trainingTime;
-    double testTime;
-    double rejectionPrecision;
-    double rejectionRecall;
-    VectorDouble precision;
-    VectorDouble recall;
-    VectorDouble fMeasure;
-    MatrixDouble confusionMatrix;
+    Float accuracy;
+    Float rmsError;
+    Float totalSquaredError;
+    Float trainingTime;
+    Float testTime;
+    Float rejectionPrecision;
+    Float rejectionRecall;
+    VectorFloat precision;
+    VectorFloat recall;
+    VectorFloat fMeasure;
+    MatrixFloat confusionMatrix;
 
 };
 
-}//End of namespace GRT
+GRT_END_NAMESPACE
 
 #endif //GRT_TEST_RESULT_HEADER

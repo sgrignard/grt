@@ -1,30 +1,31 @@
 /*
- GRT MIT License
- Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
- 
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
- and associated documentation files (the "Software"), to deal in the Software without restriction, 
- including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
- subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in all copies or substantial 
- portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
- LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+GRT MIT License
+Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#define GRT_DLL_EXPORTS
 #include "KMeansQuantizer.h"
 
-namespace GRT{
-    
+GRT_BEGIN_NAMESPACE
+
 //Register your module with the FeatureExtraction base class
 RegisterFeatureExtractionModule< KMeansQuantizer > KMeansQuantizer::registerModule("KMeansQuantizer");
-    
+
 KMeansQuantizer::KMeansQuantizer(const UINT numClusters){
     
     this->numClusters = numClusters;
@@ -35,7 +36,7 @@ KMeansQuantizer::KMeansQuantizer(const UINT numClusters){
     errorLog.setProceedingText("[ERROR KMeansQuantizer]");
     warningLog.setProceedingText("[WARNING KMeansQuantizer]");
 }
-    
+
 KMeansQuantizer::KMeansQuantizer(const KMeansQuantizer &rhs){
     
     classType = "KMeansQuantizer";
@@ -51,7 +52,7 @@ KMeansQuantizer::KMeansQuantizer(const KMeansQuantizer &rhs){
 
 KMeansQuantizer::~KMeansQuantizer(){
 }
-    
+
 KMeansQuantizer& KMeansQuantizer::operator=(const KMeansQuantizer &rhs){
     if(this!=&rhs){
         //Copy any class variables from the rhs instance to this instance
@@ -64,7 +65,7 @@ KMeansQuantizer& KMeansQuantizer::operator=(const KMeansQuantizer &rhs){
     }
     return *this;
 }
-    
+
 bool KMeansQuantizer::deepCopyFrom(const FeatureExtraction *featureExtraction){
     
     if( featureExtraction == NULL ) return false;
@@ -78,16 +79,16 @@ bool KMeansQuantizer::deepCopyFrom(const FeatureExtraction *featureExtraction){
         return true;
     }
     
-    errorLog << "clone(FeatureExtraction *featureExtraction) -  FeatureExtraction Types Do Not Match!" << endl;
+    errorLog << "clone(FeatureExtraction *featureExtraction) -  FeatureExtraction Types Do Not Match!" << std::endl;
     
     return false;
 }
+
+bool KMeansQuantizer::computeFeatures(const VectorFloat &inputVector){
     
-bool KMeansQuantizer::computeFeatures(const VectorDouble &inputVector){
+    //Run the quantize algorithm
+    quantize( inputVector );
     
-	//Run the quantize algorithm
-	quantize( inputVector );
-	
     return true;
 }
 
@@ -101,7 +102,7 @@ bool KMeansQuantizer::reset(){
     
     return true;
 }
-    
+
 bool KMeansQuantizer::clear(){
     
     FeatureExtraction::clear();
@@ -113,25 +114,25 @@ bool KMeansQuantizer::clear(){
     return true;
 }
 
-bool KMeansQuantizer::saveModelToFile(fstream &file) const{
+bool KMeansQuantizer::save( std::fstream &file ) const{
     
     if( !file.is_open() ){
-        errorLog << "saveModelToFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "save(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
     //Save the header
-    file << "KMEANS_QUANTIZER_FILE_V1.0" << endl;
-	
+    file << "KMEANS_QUANTIZER_FILE_V1.0" << std::endl;
+    
     //Save the feature extraction base class settings
     if( !saveFeatureExtractionSettingsToFile( file ) ){
-        errorLog << "saveModelToFile(fstream &file) - Failed to save base feature extraction settings to file!" << endl;
+        errorLog << "save(fstream &file) - Failed to save base feature extraction settings to file!" << std::endl;
         return false;
     }
     
     //Save the KMeansQuantizer settings
-    file << "QuantizerTrained: " << trained << endl;
-    file << "NumClusters: " << numClusters << endl;
+    file << "QuantizerTrained: " << trained << std::endl;
+    file << "NumClusters: " << numClusters << std::endl;
     
     if( trained ){
         file << "Clusters: \n";
@@ -139,49 +140,49 @@ bool KMeansQuantizer::saveModelToFile(fstream &file) const{
             for(UINT j=0; j<numInputDimensions; j++){
                 file << clusters[k][j];
                 if( j != numInputDimensions-1 ) file << "\t";
-                else file << endl;
-            }
+                else file << std::endl;
+                }
         }
     }
     
     return true;
 }
 
-bool KMeansQuantizer::loadModelFromFile(fstream &file){
+bool KMeansQuantizer::load( std::fstream &file ){
     
     //Clear any previouly built model and settings
     clear();
     
     if( !file.is_open() ){
-        errorLog << "loadModelFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "load(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
-    string word;
+    std::string word;
     
     //First, you should read and validate the header
     file >> word;
     if( word != "KMEANS_QUANTIZER_FILE_V1.0" ){
-        errorLog << "loadModelFromFile(fstream &file) - Invalid file format!" << endl;
+        errorLog << "load(fstream &file) - Invalid file format!" << std::endl;
         return false;
     }
     
     //Second, you should load the base feature extraction settings to the file
     if( !loadFeatureExtractionSettingsFromFile( file ) ){
-        errorLog << "loadFeatureExtractionSettingsFromFile(fstream &file) - Failed to load base feature extraction settings from file!" << endl;
+        errorLog << "loadFeatureExtractionSettingsFromFile(fstream &file) - Failed to load base feature extraction settings from file!" << std::endl;
         return false;
     }
     
     file >> word;
     if( word != "QuantizerTrained:" ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to load QuantizerTrained!" << endl;
+        errorLog << "load(fstream &file) - Failed to load QuantizerTrained!" << std::endl;
         return false;
     }
     file >> trained;
     
     file >> word;
     if( word != "NumClusters:" ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to load NumClusters!" << endl;
+        errorLog << "load(fstream &file) - Failed to load NumClusters!" << std::endl;
         return false;
     }
     file >> numClusters;
@@ -190,7 +191,7 @@ bool KMeansQuantizer::loadModelFromFile(fstream &file){
         clusters.resize(numClusters, numInputDimensions);
         file >> word;
         if( word != "Clusters:" ){
-            errorLog << "loadModelFromFile(fstream &file) - Failed to load Clusters!" << endl;
+            errorLog << "load(fstream &file) - Failed to load Clusters!" << std::endl;
             return false;
         }
         
@@ -207,28 +208,28 @@ bool KMeansQuantizer::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
+
 bool KMeansQuantizer::train_(ClassificationData &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train( data );
 }
-    
+
 bool KMeansQuantizer::train_(TimeSeriesClassificationData &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train( data );
 }
-   
-bool KMeansQuantizer::train_(TimeSeriesClassificationDataStream &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+
+bool KMeansQuantizer::train_(ClassificationDataStream &trainingData){
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train( data );
 }
 
 bool KMeansQuantizer::train_(UnlabelledData &trainingData){
-	MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train( data );
 }
-    
-bool KMeansQuantizer::train_(MatrixDouble &trainingData){
+
+bool KMeansQuantizer::train_(MatrixFloat &trainingData){
     
     //Clear any previous model
     clear();
@@ -239,10 +240,10 @@ bool KMeansQuantizer::train_(MatrixDouble &trainingData){
     kmeans.setComputeTheta( true );
     kmeans.setMinChange( minChange );
     kmeans.setMinNumEpochs( minNumEpochs );
-	kmeans.setMaxNumEpochs( maxNumEpochs );
+    kmeans.setMaxNumEpochs( maxNumEpochs );
     
     if( !kmeans.train_(trainingData) ){
-        errorLog << "train_(MatrixDouble &trainingData) - Failed to train quantizer!" << endl;
+        errorLog << "train_(MatrixFloat &trainingData) - Failed to train quantizer!" << std::endl;
         return false;
     }
     
@@ -257,31 +258,31 @@ bool KMeansQuantizer::train_(MatrixDouble &trainingData){
     return true;
 }
 
-UINT KMeansQuantizer::quantize(double inputValue){
-	return quantize( VectorDouble(1,inputValue) );
+UINT KMeansQuantizer::quantize(Float inputValue){
+    return quantize( VectorFloat(1,inputValue) );
 }
 
-UINT KMeansQuantizer::quantize(const VectorDouble &inputVector){
-	
+UINT KMeansQuantizer::quantize(const VectorFloat &inputVector){
+    
     if( !trained ){
-        errorLog << "computeFeatures(const VectorDouble &inputVector) - The quantizer has not been trained!" << endl;
+        errorLog << "computeFeatures(const VectorFloat &inputVector) - The quantizer has not been trained!" << std::endl;
         return 0;
     }
-
-    if( inputVector.size() != numInputDimensions ){
-        errorLog << "computeFeatures(const VectorDouble &inputVector) - The size of the inputVector (" << inputVector.size() << ") does not match that of the filter (" << numInputDimensions << ")!" << endl;
+    
+    if( inputVector.getSize() != numInputDimensions ){
+        errorLog << "computeFeatures(const VectorFloat &inputVector) - The size of the inputVector (" << inputVector.getSize() << ") does not match that of the filter (" << numInputDimensions << ")!" << std::endl;
         return 0;
     }
-
-	//Find the minimum cluster
-    double minDist = numeric_limits<double>::max();
+    
+    //Find the minimum cluster
+    Float minDist = grt_numeric_limits< Float >::max();
     UINT quantizedValue = 0;
     
     for(UINT k=0; k<numClusters; k++){
         //Compute the squared Euclidean distance
         quantizationDistances[k] = 0;
         for(UINT i=0; i<numInputDimensions; i++){
-            quantizationDistances[k] += SQR( inputVector[i]-clusters[k][i] );
+            quantizationDistances[k] += grt_sqr( inputVector[i]-clusters[k][i] );
         }
         if( quantizationDistances[k] < minDist ){
             minDist = quantizationDistances[k];
@@ -291,18 +292,18 @@ UINT KMeansQuantizer::quantize(const VectorDouble &inputVector){
     
     featureVector[0] = quantizedValue;
     featureDataReady = true;
-	
-	return quantizedValue;
+    
+    return quantizedValue;
 }
-  
+
 UINT KMeansQuantizer::getNumClusters() const{
     return numClusters;
 }
-    
+
 bool KMeansQuantizer::setNumClusters(const UINT numClusters){
     clear();
     this->numClusters = numClusters;
     return true;
 }
-    
-}//End of namespace GRT
+
+GRT_END_NAMESPACE

@@ -1,10 +1,11 @@
 
+#define GRT_DLL_EXPORTS
 #include "BernoulliRBM.h"
 
-namespace GRT{
-    
-BernoulliRBM::BernoulliRBM(const UINT numHiddenUnits,const UINT maxNumEpochs,const double learningRate,const double learningRateUpdate,const double momentum,const bool useScaling,const bool randomiseTrainingOrder){
+GRT_BEGIN_NAMESPACE
 
+BernoulliRBM::BernoulliRBM(const UINT numHiddenUnits,const UINT maxNumEpochs,const Float learningRate,const Float learningRateUpdate,const Float momentum,const bool useScaling,const bool randomiseTrainingOrder){
+    
     this->numHiddenUnits = numHiddenUnits;
     this->maxNumEpochs = maxNumEpochs;
     this->learningRate = learningRate;
@@ -17,7 +18,7 @@ BernoulliRBM::BernoulliRBM(const UINT numHiddenUnits,const UINT maxNumEpochs,con
     batchStepSize = 1;
     minNumEpochs = 1;
     minChange = 1.0e-5;
-
+    
     classType = "BernoulliRBM";
     debugLog.setProceedingText("[DEBUG BernoulliRBM]");
     errorLog.setProceedingText("[ERROR BernoulliRBM]");
@@ -28,8 +29,8 @@ BernoulliRBM::BernoulliRBM(const UINT numHiddenUnits,const UINT maxNumEpochs,con
 BernoulliRBM::~BernoulliRBM(){
     
 }
-    
-bool BernoulliRBM::predict_(VectorDouble &inputData){
+
+bool BernoulliRBM::predict_(VectorFloat &inputData){
     
     if( !predict_(inputData,outputData) ){
         return false;
@@ -37,17 +38,17 @@ bool BernoulliRBM::predict_(VectorDouble &inputData){
     
     return true;
 }
-    
-bool BernoulliRBM::predict_(VectorDouble &inputData,VectorDouble &outputData){
+
+bool BernoulliRBM::predict_(VectorFloat &inputData,VectorFloat &outputData){
     
     if( !trained ){
-        errorLog << "predict_(VectorDouble &inputData,VectorDouble &outputData) - Failed to run prediction - the model has not been trained." << endl;
+        errorLog << "predict_(VectorFloat &inputData,VectorFloat &outputData) - Failed to run prediction - the model has not been trained." << std::endl;
         return false;
     }
     
     if( inputData.size() != numVisibleUnits ){
-        errorLog << "predict_(VectorDouble &inputData,VectorDouble &outputData) - Failed to run prediction - the input data size (" << inputData.size() << ")";
-        errorLog << " does not match the number of visible units (" << numVisibleUnits << "). " << endl;
+        errorLog << "predict_(VectorFloat &inputData,VectorFloat &outputData) - Failed to run prediction - the input data size (" << inputData.size() << ")";
+        errorLog << " does not match the number of visible units (" << numVisibleUnits << "). " << std::endl;
         return false;
     }
     
@@ -58,78 +59,79 @@ bool BernoulliRBM::predict_(VectorDouble &inputData,VectorDouble &outputData){
     //Scale the data if needed
     if( useScaling ){
         for(UINT i=0; i<numVisibleUnits; i++){
-            inputData[i] = scale(inputData[i],ranges[i].minValue,ranges[i].maxValue,0,1);
+            inputData[i] = grt_scale(inputData[i],ranges[i].minValue,ranges[i].maxValue,0.0,1.0);
         }
     }
     
     //Propagate the data up through the RBM
-    double x = 0.0;
+    Float x = 0.0;
     for(UINT i=0; i<numHiddenUnits; i++){
+        x = 0.0;
         for(UINT j=0; j<numVisibleUnits; j++) {
             x += weightsMatrix[i][j] * inputData[j];
         }
-        outputData[i] = sigmoid( x + hiddenLayerBias[i] );
-    }
-    
-    return true;
-}
-    
-bool BernoulliRBM::predict_(const MatrixDouble &inputData,MatrixDouble &outputData,const UINT rowIndex){
-    
-    if( !trained ){
-        errorLog << "predict_(const MatrixDouble &inputData,MatrixDouble &outputData,const UINT rowIndex) - Failed to run prediction - the model has not been trained." << endl;
-        return false;
-    }
-    
-    if( inputData.getNumCols() != numVisibleUnits ){
-        errorLog << "predict_(const MatrixDouble &inputData,MatrixDouble &outputData,const UINT rowIndex) -";
-        errorLog << " Failed to run prediction - the number of columns in the input matrix (" << inputData.getNumCols() << ")";
-        errorLog << " does not match the number of visible units (" << numVisibleUnits << ")." << endl;
-        return false;
-    }
-    
-    if( outputData.getNumCols() != numHiddenUnits ){
-        errorLog << "predict_(const MatrixDouble &inputData,MatrixDouble &outputData,const UINT rowIndex) -";
-        errorLog << " Failed to run prediction - the number of columns in the output matrix (" << outputData.getNumCols() << ")";
-        errorLog << " does not match the number of hidden units (" << numHiddenUnits << ")." << endl;
-        return false;
-    }
-    
-    //Propagate the data up through the RBM
-    double x = 0.0;
-    for(UINT j=0; j<numHiddenUnits; j++){
-        x = 0;
-        for(UINT i=0; i<numVisibleUnits; i++) {
-            x += weightsMatrix[j][i] * inputData[rowIndex][i];
-        }
-        outputData[rowIndex][j] = sigmoid( x + hiddenLayerBias[j] ); //This gives P( h_j = 1 | input )
+        outputData[i] = grt_sigmoid( x + hiddenLayerBias[i] );
     }
     
     return true;
 }
 
-bool BernoulliRBM::train_(MatrixDouble &data){
+bool BernoulliRBM::predict_(const MatrixFloat &inputData,MatrixFloat &outputData,const UINT rowIndex){
+    
+    if( !trained ){
+        errorLog << "predict_(const MatrixFloat &inputData,MatrixFloat &outputData,const UINT rowIndex) - Failed to run prediction - the model has not been trained." << std::endl;
+        return false;
+    }
+    
+    if( inputData.getNumCols() != numVisibleUnits ){
+        errorLog << "predict_(const MatrixFloat &inputData,MatrixFloat &outputData,const UINT rowIndex) -";
+        errorLog << " Failed to run prediction - the number of columns in the input matrix (" << inputData.getNumCols() << ")";
+        errorLog << " does not match the number of visible units (" << numVisibleUnits << ")." << std::endl;
+        return false;
+    }
+    
+    if( outputData.getNumCols() != numHiddenUnits ){
+        errorLog << "predict_(const MatrixFloat &inputData,MatrixFloat &outputData,const UINT rowIndex) -";
+        errorLog << " Failed to run prediction - the number of columns in the output matrix (" << outputData.getNumCols() << ")";
+        errorLog << " does not match the number of hidden units (" << numHiddenUnits << ")." << std::endl;
+        return false;
+    }
+    
+    //Propagate the data up through the RBM
+    Float x = 0.0;
+    for(UINT j=0; j<numHiddenUnits; j++){
+        x = 0;
+        for(UINT i=0; i<numVisibleUnits; i++) {
+            x += weightsMatrix[j][i] * inputData[rowIndex][i];
+        }
+        outputData[rowIndex][j] = grt_sigmoid( x + hiddenLayerBias[j] ); //This gives P( h_j = 1 | input )
+    }
+    
+    return true;
+}
+
+bool BernoulliRBM::train_(MatrixFloat &data){
     
     const UINT numTrainingSamples = data.getNumRows();
     numInputDimensions = data.getNumCols();
     numOutputDimensions = numHiddenUnits;
     numVisibleUnits = numInputDimensions;
     
-    trainingLog << "NumInputDimensions: " << numInputDimensions << endl;
-    trainingLog << "NumOutputDimensions: " << numOutputDimensions << endl;
+    trainingLog << "NumInputDimensions: " << numInputDimensions << std::endl;
+    trainingLog << "NumOutputDimensions: " << numOutputDimensions << std::endl;
     
     if( randomizeWeightsForTraining ){
-    
+        
         //Init the weights matrix
         weightsMatrix.resize(numHiddenUnits, numVisibleUnits);
         
-        double a = 1.0 / numVisibleUnits;
+        Float a = 1.0 / numVisibleUnits;
         for(UINT i=0; i<numHiddenUnits; i++) {
             for(UINT j=0; j<numVisibleUnits; j++) {
                 weightsMatrix[i][j] = rand.getRandomNumberUniform(-a, a);
             }
         }
-
+        
         //Init the bias units
         visibleLayerBias.resize( numVisibleUnits );
         hiddenLayerBias.resize( numHiddenUnits );
@@ -138,19 +140,19 @@ bool BernoulliRBM::train_(MatrixDouble &data){
         
     }else{
         if( weightsMatrix.getNumRows() != numHiddenUnits ){
-            errorLog << "train_(MatrixDouble &data) - Weights matrix row size does not match the number of hidden units!" << endl;
+            errorLog << "train_(MatrixFloat &data) - Weights matrix row size does not match the number of hidden units!" << std::endl;
             return false;
         }
         if( weightsMatrix.getNumCols() != numVisibleUnits ){
-            errorLog << "train_(MatrixDouble &data) - Weights matrix row size does not match the number of visible units!" << endl;
+            errorLog << "train_(MatrixFloat &data) - Weights matrix row size does not match the number of visible units!" << std::endl;
             return false;
         }
         if( visibleLayerBias.size() != numVisibleUnits ){
-            errorLog << "train_(MatrixDouble &data) - Visible layer bias size does not match the number of visible units!" << endl;
+            errorLog << "train_(MatrixFloat &data) - Visible layer bias size does not match the number of visible units!" << std::endl;
             return false;
         }
         if( hiddenLayerBias.size() != numHiddenUnits ){
-            errorLog << "train_(MatrixDouble &data) - Hidden layer bias size does not match the number of hidden units!" << endl;
+            errorLog << "train_(MatrixFloat &data) - Hidden layer bias size does not match the number of hidden units!" << std::endl;
             return false;
         }
     }
@@ -163,16 +165,16 @@ bool BernoulliRBM::train_(MatrixDouble &data){
     if( useScaling ){
         for(UINT i=0; i<numTrainingSamples; i++){
             for(UINT j=0; j<numInputDimensions; j++){
-                data[i][j] = scale(data[i][j], ranges[j].minValue, ranges[j].maxValue, 0, 1);
+                data[i][j] = grt_scale(data[i][j], ranges[j].minValue, ranges[j].maxValue, 0.0, 1.0);
             }
         }
     }
     
-
-    const UINT numBatches = static_cast<UINT>( ceil( double(numTrainingSamples)/batchSize ) );
+    
+    const UINT numBatches = static_cast<UINT>( ceil( Float(numTrainingSamples)/batchSize ) );
     
     //Setup the batch indexs
-    vector< BatchIndexs > batchIndexs( numBatches );
+    Vector< BatchIndexs > batchIndexs( numBatches );
     UINT startIndex = 0;
     for(UINT i=0; i<numBatches; i++){
         batchIndexs[i].startIndex = startIndex;
@@ -192,30 +194,30 @@ bool BernoulliRBM::train_(MatrixDouble &data){
     
     Timer timer;
     UINT i,j,n,epoch,noChangeCounter = 0;
-    double startTime = 0;
-    double alpha = learningRate;
-    double error = 0;
-    double err = 0;
-    double delta = 0;
-    double lastError = 0;
-    vector< UINT > indexList(numTrainingSamples);
+    Float startTime = 0;
+    Float alpha = learningRate;
+    Float error = 0;
+    Float err = 0;
+    Float delta = 0;
+    Float lastError = 0;
+    Vector< UINT > indexList(numTrainingSamples);
     TrainingResult trainingResult;
-    MatrixDouble wT( numVisibleUnits, numHiddenUnits );       //Stores a transposed copy of the weights vector
-    MatrixDouble vW( numHiddenUnits, numVisibleUnits );       //Stores the weight velocity updates
-    MatrixDouble tmpW( numHiddenUnits, numVisibleUnits );     //Stores the weight values that will be used to update the main weights matrix at each batch update
-    MatrixDouble v1( batchSize, numVisibleUnits );            //Stores the real batch data during a batch update
-    MatrixDouble v2( batchSize, numVisibleUnits );            //Stores the sampled batch data during a batch update
-    MatrixDouble h1( batchSize, numHiddenUnits );             //Stores the hidden states given v1 and the current weightsMatrix
-    MatrixDouble h2( batchSize, numHiddenUnits );             //Stores the sampled hidden states given v2 and the current weightsMatrix
-    MatrixDouble c1( numHiddenUnits, numVisibleUnits );       //Stores h1' * v1
-    MatrixDouble c2( numHiddenUnits, numVisibleUnits );       //Stores h2' * v2
-    MatrixDouble vDiff( batchSize, numVisibleUnits );         //Stores the difference between v1-v2
-    MatrixDouble hDiff( batchSize, numVisibleUnits );         //Stores the difference between h1-h2
-    MatrixDouble cDiff( numHiddenUnits, numVisibleUnits );    //Stores the difference between c1-c2
-    VectorDouble vDiffSum( numVisibleUnits );                 //Stores the column sum of vDiff
-    VectorDouble hDiffSum( numHiddenUnits );                  //Stores the column sum of hDiff
-    VectorDouble visibleLayerBiasVelocity( numVisibleUnits ); //Stores the velocity update of the visibleLayerBias
-    VectorDouble hiddenLayerBiasVelocity( numHiddenUnits );   //Stores the velocity update of the hiddenLayerBias
+    MatrixFloat wT( numVisibleUnits, numHiddenUnits );       //Stores a transposed copy of the weights vector
+    MatrixFloat vW( numHiddenUnits, numVisibleUnits );       //Stores the weight velocity updates
+    MatrixFloat tmpW( numHiddenUnits, numVisibleUnits );     //Stores the weight values that will be used to update the main weights matrix at each batch update
+    MatrixFloat v1( batchSize, numVisibleUnits );            //Stores the real batch data during a batch update
+    MatrixFloat v2( batchSize, numVisibleUnits );            //Stores the sampled batch data during a batch update
+    MatrixFloat h1( batchSize, numHiddenUnits );             //Stores the hidden states given v1 and the current weightsMatrix
+    MatrixFloat h2( batchSize, numHiddenUnits );             //Stores the sampled hidden states given v2 and the current weightsMatrix
+    MatrixFloat c1( numHiddenUnits, numVisibleUnits );       //Stores h1' * v1
+    MatrixFloat c2( numHiddenUnits, numVisibleUnits );       //Stores h2' * v2
+    MatrixFloat vDiff( batchSize, numVisibleUnits );         //Stores the difference between v1-v2
+    MatrixFloat hDiff( batchSize, numVisibleUnits );         //Stores the difference between h1-h2
+    MatrixFloat cDiff( numHiddenUnits, numVisibleUnits );    //Stores the difference between c1-c2
+    VectorFloat vDiffSum( numVisibleUnits );                 //Stores the column sum of vDiff
+    VectorFloat hDiffSum( numHiddenUnits );                  //Stores the column sum of hDiff
+    VectorFloat visibleLayerBiasVelocity( numVisibleUnits ); //Stores the velocity update of the visibleLayerBias
+    VectorFloat hiddenLayerBiasVelocity( numHiddenUnits );   //Stores the velocity update of the hiddenLayerBias
     
     //Set all the velocity weights to zero
     vW.setAllValues( 0 );
@@ -247,16 +249,16 @@ bool BernoulliRBM::train_(MatrixDouble &data){
             h2.resize( batchIndexs[k].batchSize, numHiddenUnits );
             
             //Setup the data pointers, using data pointers saves a few ms on large matrix updates
-            double **w_p = weightsMatrix.getDataPointer();
-            double **wT_p = wT.getDataPointer();
-            double **vW_p = vW.getDataPointer();
-            double **data_p = data.getDataPointer();
-            double **v1_p = v1.getDataPointer();
-            double **v2_p = v2.getDataPointer();
-            double **h1_p = h1.getDataPointer();
-            double **h2_p = h2.getDataPointer();
-            double *vlb_p = &visibleLayerBias[0];
-            double *hlb_p = &hiddenLayerBias[0];
+            Float **w_p = weightsMatrix.getDataPointer();
+            Float **wT_p = wT.getDataPointer();
+            Float **vW_p = vW.getDataPointer();
+            Float **data_p = data.getDataPointer();
+            Float **v1_p = v1.getDataPointer();
+            Float **v2_p = v2.getDataPointer();
+            Float **h1_p = h1.getDataPointer();
+            Float **h2_p = h2.getDataPointer();
+            Float *vlb_p = &visibleLayerBias[0];
+            Float *hlb_p = &hiddenLayerBias[0];
             
             //Get the batch data
             UINT index = 0;
@@ -269,8 +271,8 @@ bool BernoulliRBM::train_(MatrixDouble &data){
             
             //Copy a transposed version of the weights matrix, this is used to compute h1 and h2
             for(i=0; i<numHiddenUnits; i++)
-                for(j=0; j<numVisibleUnits; j++)
-                    wT_p[j][i] = w_p[i][j];
+            for(j=0; j<numVisibleUnits; j++)
+            wT_p[j][i] = w_p[i][j];
             
             //Compute h1
             h1.multiple(v1, wT);
@@ -292,7 +294,7 @@ bool BernoulliRBM::train_(MatrixDouble &data){
             h2.multiple(v2,wT);
             for(n=0; n<batchIndexs[k].batchSize; n++){
                 for(i=0; i<numHiddenUnits; i++){
-                    h2_p[n][i] = sigmoid( h2_p[n][i] + hlb_p[i] );
+                    h2_p[n][i] = grt_sigmoid( h2_p[n][i] + hlb_p[i] );
                 }
             }
             
@@ -366,7 +368,7 @@ bool BernoulliRBM::train_(MatrixDouble &data){
         trainingLog << " Learning rate: " << alpha;
         trainingLog << " Momentum: " << momentum;
         trainingLog << " Average reconstruction error: " << error;
-        trainingLog << " Delta: " << delta << endl;
+        trainingLog << " Delta: " << delta << std::endl;
         
         //Update the learning rate
         alpha *= learningRateUpdate;
@@ -378,19 +380,19 @@ bool BernoulliRBM::train_(MatrixDouble &data){
         //Check for convergance
         if( fabs(delta) < minChange ){
             if( ++noChangeCounter >= minNumEpochs ){
-                trainingLog << "Stopping training. MinChange limit reached!" << endl;
+                trainingLog << "Stopping training. MinChange limit reached!" << std::endl;
                 break;
             }
         }else noChangeCounter = 0;
         
     }
-    trainingLog << "Training complete after " << epoch << " epochs. Total training time: " << timer.getMilliSeconds()/1000.0 << " seconds" << endl;
+    trainingLog << "Training complete after " << epoch << " epochs. Total training time: " << timer.getMilliSeconds()/1000.0 << " seconds" << std::endl;
     
     trained = true;
     
     return true;
 }
-    
+
 bool BernoulliRBM::reset(){
     
     //Reset the base class
@@ -422,45 +424,45 @@ bool BernoulliRBM::clear(){
     return true;
 }
 
-bool BernoulliRBM::saveModelToFile(fstream &file) const{
+bool BernoulliRBM::save( std::fstream &file ) const{
     
     if(!file.is_open())
-	{
-		errorLog <<"saveModelToFile(fstream &file) - The file is not open!" << endl;
-		return false;
-	}
-    
-	//Write the header info
-	file<<"GRT_BERNOULLI_RBM_MODEL_FILE_V1.1\n";
-    
-    if( !saveBaseSettingsToFile( file ) ){
-        errorLog <<"saveModelToFile(fstream &file) - Failed to save base settings to file!" << endl;
+    {
+        errorLog <<"save(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
-    file << "NumVisibleUnits: " << numVisibleUnits << endl;
-    file << "NumHiddenUnits: " << numHiddenUnits << endl;
-    file << "BatchSize: " << batchSize << endl;
-    file << "BatchStepSize: " << batchStepSize << endl;
-    file << "LearningRate: " << learningRate << endl;
-    file << "LearningRateUpdate: " << learningRateUpdate << endl;
-    file << "Momentum: " << momentum << endl;
-    file << "RandomizeWeightsForTraining: " << randomizeWeightsForTraining << endl;
-	
+    //Write the header info
+    file<<"GRT_BERNOULLI_RBM_MODEL_FILE_V1.1\n";
+    
+    if( !saveBaseSettingsToFile( file ) ){
+        errorLog <<"save(fstream &file) - Failed to save base settings to file!" << std::endl;
+        return false;
+    }
+    
+    file << "NumVisibleUnits: " << numVisibleUnits << std::endl;
+    file << "NumHiddenUnits: " << numHiddenUnits << std::endl;
+    file << "BatchSize: " << batchSize << std::endl;
+    file << "BatchStepSize: " << batchStepSize << std::endl;
+    file << "LearningRate: " << learningRate << std::endl;
+    file << "LearningRateUpdate: " << learningRateUpdate << std::endl;
+    file << "Momentum: " << momentum << std::endl;
+    file << "RandomizeWeightsForTraining: " << randomizeWeightsForTraining << std::endl;
+    
     file << "Ranges: \n";
     for(UINT n=0; n<ranges.size(); n++){
-        file << ranges[n].minValue << "\t" << ranges[n].maxValue << endl;
+        file << ranges[n].minValue << "\t" << ranges[n].maxValue << std::endl;
     }
     
     //If the model has been trained then write the model
     if( trained ){
-        file << "WeightsMatrix: " << endl;
+        file << "WeightsMatrix: " << std::endl;
         for(UINT i=0; i<weightsMatrix.getNumRows(); i++){
             for(UINT j=0; j<weightsMatrix.getNumCols(); j++){
                 file << weightsMatrix[i][j];
                 if( j < weightsMatrix.getNumCols()-1 ) file << " ";
             }
-            file << endl;
+            file << std::endl;
         }
         
         file << "VisibleLayerBias: ";
@@ -468,28 +470,28 @@ bool BernoulliRBM::saveModelToFile(fstream &file) const{
             file << visibleLayerBias[i];
             if( i < visibleLayerBias.size()-1 ) file << " ";
         }
-        file << endl;
+        file << std::endl;
         
         file << "HiddenLayerBias: ";
         for(unsigned int i=0; i<hiddenLayerBias.size(); i++){
             file << hiddenLayerBias[i];
             if( i < hiddenLayerBias.size()-1 ) file << " ";
         }
-        file << endl;
+        file << std::endl;
     }
     
     return true;
 }
 
-bool BernoulliRBM::loadModelFromFile(fstream &file){
+bool BernoulliRBM::load( std::fstream &file ){
     
     if(!file.is_open())
     {
-        errorLog <<"loadModelFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog <<"load(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
-    string word;
+    std::string word;
     
     //Read the header info
     file >> word;
@@ -499,19 +501,19 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     }
     
     if( word != "GRT_BERNOULLI_RBM_MODEL_FILE_V1.1" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read file header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read file header!" << std::endl;
         return false;
     }
     
     if( !loadBaseSettingsFromFile( file ) ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to load base settings to file!" << endl;
+        errorLog <<"load(fstream &file) - Failed to load base settings to file!" << std::endl;
         return false;
     }
     
     //Read the number of visible units
     file >> word;
     if( word != "NumVisibleUnits:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumVisibleUnits header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumVisibleUnits header!" << std::endl;
         return false;
     }
     file >> numVisibleUnits;
@@ -519,7 +521,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the number of hidden units
     file >> word;
     if( word != "NumHiddenUnits:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumHiddenUnits header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumHiddenUnits header!" << std::endl;
         return false;
     }
     file >> numHiddenUnits;
@@ -527,7 +529,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the batch size
     file >> word;
     if( word != "BatchSize:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read BatchSize header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read BatchSize header!" << std::endl;
         return false;
     }
     file >> batchSize;
@@ -535,7 +537,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the batch step size
     file >> word;
     if( word != "BatchStepSize:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read BatchStepSize header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read BatchStepSize header!" << std::endl;
         return false;
     }
     file >> batchStepSize;
@@ -543,7 +545,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the learning rate
     file >> word;
     if( word != "LearningRate:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read LearningRate header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read LearningRate header!" << std::endl;
         return false;
     }
     file >> learningRate;
@@ -551,7 +553,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the learning rate update
     file >> word;
     if( word != "LearningRateUpdate:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read LearningRateUpdate header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read LearningRateUpdate header!" << std::endl;
         return false;
     }
     file >> learningRateUpdate;
@@ -559,7 +561,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the momentum
     file >> word;
     if( word != "Momentum:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read Momentum header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read Momentum header!" << std::endl;
         return false;
     }
     file >> momentum;
@@ -567,7 +569,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the randomizeWeightsForTraining
     file >> word;
     if( word != "RandomizeWeightsForTraining:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read RandomizeWeightsForTraining header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read RandomizeWeightsForTraining header!" << std::endl;
         return false;
     }
     file >> randomizeWeightsForTraining;
@@ -575,7 +577,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     //Read the ranges
     file >> word;
     if( word != "Ranges:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read Ranges header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read Ranges header!" << std::endl;
         return false;
     }
     ranges.resize(numInputDimensions);
@@ -590,7 +592,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
         //Load the weights matrix
         file >> word;
         if( word != "WeightsMatrix:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read WeightsMatrix header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read WeightsMatrix header!" << std::endl;
             return false;
         }
         weightsMatrix.resize(numHiddenUnits, numVisibleUnits);
@@ -604,11 +606,11 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
         //Load the VisibleLayerBias
         file >> word;
         if( word != "VisibleLayerBias:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read VisibleLayerBias header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read VisibleLayerBias header!" << std::endl;
             return false;
         }
         visibleLayerBias.resize(numVisibleUnits);
-
+        
         for(unsigned int i=0; i<visibleLayerBias.size(); i++){
             file >> visibleLayerBias[i];
         }
@@ -616,7 +618,7 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
         //Load the HiddenLayerBias
         file >> word;
         if( word != "HiddenLayerBias:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read HiddenLayerBias header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read HiddenLayerBias header!" << std::endl;
             return false;
         }
         hiddenLayerBias.resize(numHiddenUnits);
@@ -628,41 +630,41 @@ bool BernoulliRBM::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
+
 bool BernoulliRBM::print() const{
     
     if( !trained ){
         return false;
     }
     
-    cout << "WeightsMatrix: \n";
+    std::cout << "WeightsMatrix: \n";
     for(UINT i=0; i<numVisibleUnits; i++) {
         for(UINT j=0; j<numHiddenUnits; j++) {
-            cout << weightsMatrix[j][i] << "\t";
+            std::cout << weightsMatrix[j][i] << "\t";
         }
-        cout << endl;
+        std::cout << std::endl;
     }
-    cout << endl;
+    std::cout << std::endl;
     
-    cout << "visible layer bias: ";
+    std::cout << "visible layer bias: ";
     for(UINT j=0; j<numVisibleUnits; j++) {
-        cout << visibleLayerBias[j] << "\t";
+        std::cout << visibleLayerBias[j] << "\t";
     }
-    cout << endl;
+    std::cout << std::endl;
     
-    cout << "hidden layer bias: ";
+    std::cout << "hidden layer bias: ";
     for(UINT j=0; j<numHiddenUnits; j++) {
-        cout << hiddenLayerBias[j] << "\t";
+        std::cout << hiddenLayerBias[j] << "\t";
     }
-    cout << endl;
+    std::cout << std::endl;
     
     return true;
 }
-    
+
 bool BernoulliRBM::getRandomizeWeightsForTraining() const{
     return randomizeWeightsForTraining;
 }
-    
+
 UINT BernoulliRBM::getNumVisibleUnits() const{
     return numVisibleUnits;
 }
@@ -671,35 +673,35 @@ UINT BernoulliRBM::getNumHiddenUnits() const{
     return numHiddenUnits;
 }
 
-const MatrixDouble& BernoulliRBM::getWeights() const{
+const MatrixFloat& BernoulliRBM::getWeights() const{
     return weightsMatrix;
 }
-    
-VectorDouble BernoulliRBM::getOutputData()const{
+
+VectorFloat BernoulliRBM::getOutputData()const{
     return outputData;
 }
-    
+
 bool BernoulliRBM::setNumHiddenUnits(const UINT numHiddenUnits){
     this->numHiddenUnits = numHiddenUnits;
     clear();
     return true;
 }
-    
-bool BernoulliRBM::setMomentum(const double momentum){
+
+bool BernoulliRBM::setMomentum(const Float momentum){
     this->momentum = momentum;
     return true;
 }
 
-bool BernoulliRBM::setLearningRateUpdate(const double learningRateUpdate){
+bool BernoulliRBM::setLearningRateUpdate(const Float learningRateUpdate){
     this->learningRateUpdate = learningRateUpdate;
     return true;
 }
-    
+
 bool BernoulliRBM::setRandomizeWeightsForTraining(const bool randomizeWeightsForTraining){
     this->randomizeWeightsForTraining = randomizeWeightsForTraining;
     return true;
 }
-    
+
 bool BernoulliRBM::setBatchSize(const UINT batchSize){
     this->batchSize = batchSize;
     return true;
@@ -709,21 +711,21 @@ bool BernoulliRBM::setBatchStepSize(const UINT batchStepSize){
     this->batchStepSize = batchStepSize;
     return true;
 }
+
+bool BernoulliRBM::loadLegacyModelFromFile( std::fstream &file ){
     
-bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
-    
-    string word;
+    std::string word;
     UINT numGibbsSteps = 0;
     
     if( !loadBaseSettingsFromFile( file ) ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to load base settings to file!" << endl;
+        errorLog <<"load(fstream &file) - Failed to load base settings to file!" << std::endl;
         return false;
     }
     
     //Read the number of visible units
     file >> word;
     if( word != "NumVisibleUnits:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumVisibleUnits header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumVisibleUnits header!" << std::endl;
         return false;
     }
     file >> numVisibleUnits;
@@ -731,7 +733,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the number of hidden units
     file >> word;
     if( word != "NumHiddenUnits:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumHiddenUnits header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumHiddenUnits header!" << std::endl;
         return false;
     }
     file >> numHiddenUnits;
@@ -739,7 +741,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the number of training epochs
     file >> word;
     if( word != "NumTrainingEpochs:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumTrainingEpochs header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumTrainingEpochs header!" << std::endl;
         return false;
     }
     file >> maxNumEpochs;
@@ -747,7 +749,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the number of gibbs steps
     file >> word;
     if( word != "NumGibbsSteps:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read NumGibbsSteps header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read NumGibbsSteps header!" << std::endl;
         return false;
     }
     file >> numGibbsSteps;
@@ -755,7 +757,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the learning rate
     file >> word;
     if( word != "LearningRate:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read LearningRate header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read LearningRate header!" << std::endl;
         return false;
     }
     file >> learningRate;
@@ -763,7 +765,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the learning rate update
     file >> word;
     if( word != "LearningRateUpdate:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read LearningRateUpdate header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read LearningRateUpdate header!" << std::endl;
         return false;
     }
     file >> learningRateUpdate;
@@ -771,7 +773,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the momentum
     file >> word;
     if( word != "Momentum:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read Momentum header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read Momentum header!" << std::endl;
         return false;
     }
     file >> momentum;
@@ -779,7 +781,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the randomizeWeightsForTraining
     file >> word;
     if( word != "RandomizeWeightsForTraining:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read RandomizeWeightsForTraining header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read RandomizeWeightsForTraining header!" << std::endl;
         return false;
     }
     file >> randomizeWeightsForTraining;
@@ -787,7 +789,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
     //Read the ranges
     file >> word;
     if( word != "Ranges:" ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to read Ranges header!" << endl;
+        errorLog <<"load(fstream &file) - Failed to read Ranges header!" << std::endl;
         return false;
     }
     ranges.resize(numInputDimensions);
@@ -802,7 +804,7 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
         //Load the weights matrix
         file >> word;
         if( word != "WeightsMatrix:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read WeightsMatrix header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read WeightsMatrix header!" << std::endl;
             return false;
         }
         weightsMatrix.resize(numHiddenUnits, numVisibleUnits);
@@ -816,32 +818,29 @@ bool BernoulliRBM::loadLegacyModelFromFile(fstream &file){
         //Load the VisibleLayerBias
         file >> word;
         if( word != "VisibleLayerBias:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read VisibleLayerBias header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read VisibleLayerBias header!" << std::endl;
             return false;
         }
         visibleLayerBias.resize(numVisibleUnits);
         
-        for(unsigned int i=0; i<visibleLayerBias.size(); i++){
+        for(unsigned int i=0; i<visibleLayerBias.getSize(); i++){
             file >> visibleLayerBias[i];
         }
         
         //Load the HiddenLayerBias
         file >> word;
         if( word != "HiddenLayerBias:" ){
-            errorLog <<"loadModelFromFile(fstream &file) - Failed to read HiddenLayerBias header!" << endl;
+            errorLog <<"load(fstream &file) - Failed to read HiddenLayerBias header!" << std::endl;
             return false;
         }
         hiddenLayerBias.resize(numHiddenUnits);
         
-        for(unsigned int i=0; i<hiddenLayerBias.size(); i++){
+        for(unsigned int i=0; i<hiddenLayerBias.getSize(); i++){
             file >> hiddenLayerBias[i];
         }
     }
     
     return true;
 }
-    
-} //End of namespace GRT
 
-
-
+GRT_END_NAMESPACE

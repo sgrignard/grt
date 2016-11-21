@@ -18,14 +18,15 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "PreProcessing.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
     
 PreProcessing::StringPreProcessingMap* PreProcessing::stringPreProcessingMap = NULL;
 UINT PreProcessing::numPreProcessingInstances = 0;
     
-PreProcessing* PreProcessing::createInstanceFromString(string const &preProcessingType){
+PreProcessing* PreProcessing::createInstanceFromString( const std::string &preProcessingType ){
     
     StringPreProcessingMap::iterator iter = getMap()->find( preProcessingType );
     if( iter == getMap()->end() ){
@@ -34,8 +35,14 @@ PreProcessing* PreProcessing::createInstanceFromString(string const &preProcessi
     return iter->second();
 }
     
-PreProcessing::PreProcessing(void){
-    preProcessingType = "NOT_SET"; 
+PreProcessing::PreProcessing( const std::string &id ){
+
+    debugLog.setProceedingText("[DEBUG " + id + "]");
+    errorLog.setProceedingText("[ERROR " + id + "]");
+    warningLog.setProceedingText("[WARNING " + id + "]");
+    trainingLog.setProceedingText("[WARNING " + id + "]");
+
+    preProcessingType = id; 
     initialized = false; 
     numInputDimensions = 0;
     numOutputDimensions = 0;
@@ -52,11 +59,11 @@ PreProcessing::~PreProcessing(void){
 bool PreProcessing::copyBaseVariables(const PreProcessing *preProcessingModule){
     
     if( preProcessingModule == NULL ){
-        errorLog << "copyBaseVariables(const PreProcessing *preProcessingModule) - preProcessingModule pointer is NULL!" << endl;
+        errorLog << "copyBaseVariables(const PreProcessing *preProcessingModule) - preProcessingModule pointer is NULL!" << std::endl;
         return false;
     }
     
-    if( !this->copyGRTBaseVariables( preProcessingModule ) ){
+    if( !this->copyMLBaseVariables( preProcessingModule ) ){
         return false;
     }
     
@@ -92,7 +99,7 @@ bool PreProcessing::clear(){
 bool PreProcessing::init(){
     
     if( numOutputDimensions == 0 ){
-        errorLog << "init() - Failed to init module, the number of output dimensions is zero!" << endl;
+        errorLog << "init() - Failed to init module, the number of output dimensions is zero!" << std::endl;
         initialized = false;
         return false;
     }
@@ -105,72 +112,43 @@ bool PreProcessing::init(){
     
     return true;
 }
-
-bool PreProcessing::saveModelToFile(string filename) const{
     
-    std::fstream file;
-    file.open(filename.c_str(), std::ios::out);
-    
-    if( !saveModelToFile( file ) ){
-        return false;
-    }
-    
-    file.close();
-    
-    return true;
-}
-
-bool PreProcessing::loadModelFromFile(string filename){
-    
-    std::fstream file;
-    file.open(filename.c_str(), std::ios::in);
-    
-    if( !loadModelFromFile( file ) ){
-        return false;
-    }
-    
-    //Close the file
-    file.close();
-    
-    return true;
-}
-    
-bool PreProcessing::savePreProcessingSettingsToFile(fstream &file) const{
+bool PreProcessing::savePreProcessingSettingsToFile(std::fstream &file) const{
     
     if( !file.is_open() ){
-        errorLog << "savePreProcessingSettingsToFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "savePreProcessingSettingsToFile(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
     if( !MLBase::saveBaseSettingsToFile( file ) ){
-        errorLog << "savePreProcessingSettingsToFile(fstream &file) - Failed to save base settings to file!" << endl;
+        errorLog << "savePreProcessingSettingsToFile(fstream &file) - Failed to save base settings to file!" << std::endl;
         return false;
     }
     
-    file << "Initialized: " << initialized << endl;
+    file << "Initialized: " << initialized << std::endl;
     
     return true;
 }
     
-bool PreProcessing::loadPreProcessingSettingsFromFile(fstream &file){
+bool PreProcessing::loadPreProcessingSettingsFromFile(std::fstream &file){
     
     if( !file.is_open() ){
-        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
     //Try and load the base settings from the file
     if( !MLBase::loadBaseSettingsFromFile( file ) ){
-        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - Failed to load base settings from file!" << endl;
+        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - Failed to load base settings from file!" << std::endl;
         return false;
     }
     
-    string word;
+    std::string word;
     
     //Load if the filter has been initialized
     file >> word;
     if( word != "Initialized:" ){
-        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - Failed to read Initialized header!" << endl;
+        errorLog << "loadPreProcessingSettingsFromFile(fstream &file) - Failed to read Initialized header!" << std::endl;
         clear();
         return false;
     }
@@ -188,7 +166,7 @@ PreProcessing* PreProcessing::createNewInstance() const{
     return createInstanceFromString(preProcessingType);
 }
     
-string PreProcessing::getPreProcessingType() const{ 
+std::string PreProcessing::getPreProcessingType() const{ 
     return preProcessingType; 
 }
     
@@ -204,9 +182,8 @@ bool PreProcessing::getInitialized() const{
     return initialized; 
 }
     
-VectorDouble PreProcessing::getProcessedData() const{ 
+VectorFloat PreProcessing::getProcessedData() const{ 
     return processedData; 
 }
 
-} //End of namespace GRT
-
+GRT_END_NAMESPACE

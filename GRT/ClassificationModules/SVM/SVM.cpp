@@ -1,88 +1,85 @@
 /*
- GRT MIT License
- Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
- 
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
- and associated documentation files (the "Software"), to deal in the Software without restriction, 
- including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
- subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in all copies or substantial 
- portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
- LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+GRT MIT License
+Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#define GRT_DLL_EXPORTS
 #include "SVM.h"
 
-namespace GRT{
-    
-//Register the SVM module with the Classifier base class
-RegisterClassifierModule< SVM > SVM::registerModule("SVM");
+using namespace LIBSVM;
 
-SVM::SVM(UINT kernelType,UINT svmType,bool useScaling,bool useNullRejection,bool useAutoGamma,double gamma,UINT degree,double coef0,double nu,double C,bool useCrossValidation,UINT kFoldValue){
+GRT_BEGIN_NAMESPACE
+
+//Define the string that will be used to indentify the object
+std::string SVM::id = "SVM";
+std::string SVM::getId() { return SVM::id; }
+
+//Register the SVM module with the Classifier base class
+RegisterClassifierModule< SVM > SVM::registerModule( getId() );
+
+SVM::SVM(KernelType kernelType,SVMType svmType,bool useScaling,bool useNullRejection,bool useAutoGamma,Float gamma,UINT degree,Float coef0,Float nu,Float C,bool useCrossValidation,UINT kFoldValue) : Classifier( getId() )
+{
     
     //Setup the default SVM parameters
     model = NULL;
-	param.weight_label = NULL;
-	param.weight = NULL;
+    param.weight_label = NULL;
+    param.weight = NULL;
     prob.l = 0;
     prob.x = NULL;
     prob.y = NULL;
-	trained = false;
-	problemSet = false;
-	param.svm_type = C_SVC;
-	param.kernel_type = LINEAR_KERNEL;
-	param.degree = 3;
-	param.gamma = 0;
-	param.coef0 = 0;
-	param.nu = 0.5;
-	param.cache_size = 100;
-	param.C = 1;
-	param.eps = 1e-3;
-	param.p = 0.1;
-	param.shrinking = 1;
-	param.probability = 1;
-	param.nr_weight = 0;
-	param.weight_label = NULL;
-	param.weight = NULL;
-	this->useScaling = false;
-	this->useCrossValidation = false;
-	this->useNullRejection = false;
-	this->useAutoGamma = true;
+    trained = false;
+    problemSet = false;
+    param.svm_type = C_SVC;
+    param.kernel_type = LINEAR_KERNEL;
+    param.degree = 3;
+    param.gamma = 0;
+    param.coef0 = 0;
+    param.nu = 0.5;
+    param.cache_size = 100;
+    param.C = 1;
+    param.eps = 1e-3;
+    param.p = 0.1;
+    param.shrinking = 1;
+    param.probability = 1;
+    param.nr_weight = 0;
+    param.weight_label = NULL;
+    param.weight = NULL;
+    this->useScaling = false;
+    this->useCrossValidation = false;
+    this->useNullRejection = false;
+    this->useAutoGamma = true;
     classificationThreshold = 0.5;
-	crossValidationResult = 0;
+    crossValidationResult = 0;
     
-    classType = "SVM";
-    classifierType = classType;
     classifierMode = STANDARD_CLASSIFIER_MODE;
-    debugLog.setProceedingText("[DEBUG SVM]");
-    errorLog.setProceedingText("[ERROR SVM]");
-    trainingLog.setProceedingText("[TRAINING SVM]");
-    warningLog.setProceedingText("[WARNING SVM]");
     
     init(kernelType,svmType,useScaling,useNullRejection,useAutoGamma,gamma,degree,coef0,nu,C,useCrossValidation,kFoldValue);
 }
-    
-SVM::SVM(const SVM &rhs){
+
+SVM::SVM(const SVM &rhs) : Classifier( getId() )
+{
     model = NULL;
-	param.weight_label = NULL;
-	param.weight = NULL;
+    param.weight_label = NULL;
+    param.weight = NULL;
     prob.l = 0;
     prob.x = NULL;
     prob.y = NULL;
-    classType = "SVM";
-    classifierType = classType;
     classifierMode = STANDARD_CLASSIFIER_MODE;
-    debugLog.setProceedingText("[DEBUG SVM]");
-    errorLog.setProceedingText("[ERROR SVM]");
-    trainingLog.setProceedingText("[TRAINING SVM]");
-    warningLog.setProceedingText("[WARNING SVM]");
     *this = rhs;
 }
 
@@ -90,7 +87,7 @@ SVM::SVM(const SVM &rhs){
 SVM::~SVM(){
     clear();
 }
-    
+
 SVM& SVM::operator=(const SVM &rhs){
     if( this != &rhs ){
         
@@ -112,7 +109,7 @@ SVM& SVM::operator=(const SVM &rhs){
     }
     return *this;
 }
-    
+
 bool SVM::deepCopyFrom(const Classifier *classifier){
     
     if( classifier == NULL ) return false;
@@ -139,64 +136,64 @@ bool SVM::deepCopyFrom(const Classifier *classifier){
     
     return false;
 }
-    
+
 bool SVM::train_(ClassificationData &trainingData){
     
     //Clear any previous model
     clear();
     
     if( trainingData.getNumSamples() == 0 ){
-        errorLog << "train_(ClassificationData &trainingData) - Training data has zero samples!" << endl;
+        errorLog << "train_(ClassificationData &trainingData) - Training data has zero samples!" << std::endl;
         return false;
     }
     
     //Convert the labelled classification data into the LIBSVM data format
     if( !convertClassificationDataToLIBSVMFormat(trainingData) ){
-        errorLog << "train_(ClassificationData &trainingData) - Failed To Convert Labelled Classification Data To LIBSVM Format!" << endl;
+        errorLog << "train_(ClassificationData &trainingData) - Failed To Convert Classification Data To LIBSVM Format!" << std::endl;
         return false;
     }
     
     if( useAutoGamma ) param.gamma = 1.0/numInputDimensions;
     
-	//Train the model
-	bool trainingResult = trainSVM();
+    //Train the model
+    bool trainingResult = trainSVM();
     
-	if(! trainingResult ){
-        errorLog << "train_(ClassificationData &trainingData) - Failed To Train SVM Model!" << endl;
-		return false;
-	}
+    if(! trainingResult ){
+        errorLog << "train_(ClassificationData &trainingData) - Failed To Train SVM Model!" << std::endl;
+        return false;
+    }
     
     return true;
 }
 
-bool SVM::predict_(VectorDouble &inputVector){
+bool SVM::predict_(VectorFloat &inputVector){
     
     if( !trained ){
-        errorLog << "predict_(VectorDouble &inputVector) - The SVM model has not been trained!" << endl;
+        errorLog << "predict_(VectorFloat &inputVector) - The SVM model has not been trained!" << std::endl;
         return false;
     }
     
     if( inputVector.size() != numInputDimensions ){
-        errorLog << "predict_(VectorDouble &inputVector) - The size of the input vector (" << inputVector.size() << ") does not match the number of features of the model (" << numInputDimensions << ")" << endl;
+        errorLog << "predict_(VectorFloat &inputVector) - The size of the input vector (" << inputVector.size() << ") does not match the number of features of the model (" << numInputDimensions << ")" << std::endl;
         return false;
     }
     
     if( param.probability == 1 ){
         if( !predictSVM( inputVector, maxLikelihood, classLikelihoods ) ){
-            errorLog << "predict(VectorDouble inputVector) - Prediction Failed!" << endl;
+            errorLog << "predict(VectorFloat inputVector) - Prediction Failed!" << std::endl;
             return false;
         }
     }else{
         if( !predictSVM( inputVector ) ){
-            errorLog << "predict(VectorDouble inputVector) - Prediction Failed!" << endl;
+            errorLog << "predict(VectorFloat inputVector) - Prediction Failed!" << std::endl;
             return false;
         }
     }
     
     return true;
 }
-    
-bool SVM::init(UINT kernelType,UINT svmType,bool useScaling,bool useNullRejection,bool useAutoGamma,double gamma,UINT degree,double coef0,double nu,double C,bool useCrossValidation,UINT kFoldValue){
+
+bool SVM::init(KernelType kernelType,SVMType svmType,bool useScaling,bool useNullRejection,bool useAutoGamma,Float gamma,UINT degree,Float coef0,Float nu,Float C,bool useCrossValidation,UINT kFoldValue){
     
     //Clear any previous models or problems
     clear();
@@ -213,30 +210,30 @@ bool SVM::init(UINT kernelType,UINT svmType,bool useScaling,bool useNullRejectio
     }
     
     param.svm_type = (int)svmType;
-	param.kernel_type = (int)kernelType;
-	param.degree = (int)degree;
-	param.gamma = gamma;
-	param.coef0 = coef0;
-	param.nu = nu;
-	param.cache_size = 100;
-	param.C = C;
-	param.eps = 1e-3;
-	param.p = 0.1;
-	param.shrinking = 1;
-	param.probability = 1;
-	param.nr_weight = 0;
-	param.weight_label = NULL;
-	param.weight = NULL;
-	this->useScaling = useScaling;
-	this->useCrossValidation = useCrossValidation;
-	this->useNullRejection = useNullRejection;
-	this->useAutoGamma = useAutoGamma;
+    param.kernel_type = (int)kernelType;
+    param.degree = (int)degree;
+    param.gamma = gamma;
+    param.coef0 = coef0;
+    param.nu = nu;
+    param.cache_size = 100;
+    param.C = C;
+    param.eps = 1e-3;
+    param.p = 0.1;
+    param.shrinking = 1;
+    param.probability = 1;
+    param.nr_weight = 0;
+    param.weight_label = NULL;
+    param.weight = NULL;
+    this->useScaling = useScaling;
+    this->useCrossValidation = useCrossValidation;
+    this->useNullRejection = useNullRejection;
+    this->useAutoGamma = useAutoGamma;
     classificationThreshold = 0.5;
-	crossValidationResult = 0;
-
+    crossValidationResult = 0;
+    
     return true;
 }
-    
+
 void SVM::deleteProblemSet(){
     if( problemSet ){
         for(int i=0; i<prob.l; i++){
@@ -253,83 +250,83 @@ void SVM::deleteProblemSet(){
 }
 
 void SVM::initDefaultSVMSettings(){
-
-	//Clear any previous models, parameters or probelms
-	clear();
-
-	//Setup the SVM parameters
-	param.svm_type = C_SVC;
-	param.kernel_type = LINEAR_KERNEL;
-	param.degree = 3;
-	param.gamma = 0;
-	param.coef0 = 0;
-	param.nu = 0.5;
-	param.cache_size = 100;
-	param.C = 1;
-	param.eps = 1e-3;
-	param.p = 0.1;
-	param.shrinking = 1;
-	param.probability = 1;
-	param.nr_weight = 0;
-	param.weight_label = NULL;
-	param.weight = NULL;
-	useCrossValidation = false;
-	kFoldValue = 10;
-	useAutoGamma = true;
+    
+    //Clear any previous models, parameters or probelms
+    clear();
+    
+    //Setup the SVM parameters
+    param.svm_type = C_SVC;
+    param.kernel_type = LINEAR_KERNEL;
+    param.degree = 3;
+    param.gamma = 0;
+    param.coef0 = 0;
+    param.nu = 0.5;
+    param.cache_size = 100;
+    param.C = 1;
+    param.eps = 1e-3;
+    param.p = 0.1;
+    param.shrinking = 1;
+    param.probability = 1;
+    param.nr_weight = 0;
+    param.weight_label = NULL;
+    param.weight = NULL;
+    useCrossValidation = false;
+    kFoldValue = 10;
+    useAutoGamma = true;
 }
 
 bool SVM::validateProblemAndParameters(){
-	//Check the parameters match the problem
-	const char *errorMsg = svm_check_parameter(&prob,&param);
-
-	if( errorMsg ){
-        errorLog << "validateProblemAndParameters() - Parameters do not match problem!" << endl;
-		return false;
-	}
-
-	return true;
+    //Check the parameters match the problem
+    const char *errorMsg = svm_check_parameter(&prob,&param);
+    
+    if( errorMsg ){
+        errorLog << "validateProblemAndParameters() - Parameters do not match problem! error: " << errorMsg << std::endl;
+        return false;
+    }
+    
+    return true;
 }
 
 bool SVM::trainSVM(){
-
+    
     crossValidationResult = 0;
-
+    
     //Erase any previous models
     if( trained ){
         svm_free_and_destroy_model(&model);
         trained = false;
     }
-
+    
     //Check to make sure the problem has been set
     if( !problemSet ){
-        errorLog << "trainSVM() - Problem not set!" << endl;
+        errorLog << "trainSVM() - Problem not set!" << std::endl;
         return false;
     }
     
     //Verify the problem and the parameters
     if( !validateProblemAndParameters() ) return false;
-
+    
     //Scale the training data if needed
     if( useScaling ){
         for(int i=0; i<prob.l; i++)
-            for(UINT j=0; j<numInputDimensions; j++)
-                prob.x[i][j].value = scale(prob.x[i][j].value,ranges[j].minValue,ranges[j].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
+        for(UINT j=0; j<numInputDimensions; j++)
+        prob.x[i][j].value = grt_scale(prob.x[i][j].value,ranges[j].minValue,ranges[j].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
     }
-
+    
     if( useCrossValidation ){
         int i;
-        double total_correct = 0;
-        double total_error = 0;
-        double sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
-        double *target = new double[prob.l];
-
+        Float total_correct = 0;
+        Float total_error = 0;
+        Float sumv = 0, sumy = 0, sumvv = 0, sumyy = 0, sumvy = 0;
+        Float *target = new Float[prob.l];
+        
         svm_cross_validation(&prob,&param,kFoldValue,target);
         if( param.svm_type == EPSILON_SVR || param.svm_type == NU_SVR )
         {
             for(i=0;i<prob.l;i++)
             {
-                double y = prob.y[i];
-                double v = target[i];
+                Float y = prob.y[i];
+                Float v = target[i];
                 total_error += (v-y)*(v-y);
                 sumv += v;
                 sumy += y;
@@ -350,15 +347,15 @@ bool SVM::trainSVM(){
         }
         delete[] target;
     }
-        
+    
     //Train the SVM - if we are running cross validation then the CV will be run first followed by a full train
     model = svm_train(&prob,&param);
-
+    
     if( model == NULL ){
-        errorLog << "trainSVM() - Failed to train SVM Model!" << endl;
+        errorLog << "trainSVM() - Failed to train SVM Model!" << std::endl;
         return false;
     }
-
+    
     if( model != NULL ){
         trained = true;
         numClasses = getNumClasses();
@@ -369,99 +366,99 @@ bool SVM::trainSVM(){
         classLikelihoods.resize(numClasses,DEFAULT_NULL_LIKELIHOOD_VALUE);
         classDistances.resize(numClasses,DEFAULT_NULL_DISTANCE_VALUE);
     }
-
+    
     return trained;
 }
+
+bool SVM::predictSVM(VectorFloat &inputVector){
     
-bool SVM::predictSVM(VectorDouble &inputVector){
-
-		if( !trained || inputVector.size() != numInputDimensions ) return false;
-
-		svm_node *x = NULL;
-
-		//Copy the input data into the SVM format
-		x = new svm_node[numInputDimensions+1];
-		for(UINT j=0; j<numInputDimensions; j++){
-			x[j].index = (int)j+1;
-			x[j].value = inputVector[j];
-		}
-		//The last value in the input vector must be set to -1
-		x[numInputDimensions].index = -1;
-		x[numInputDimensions].value = 0;
-
-		//Scale the input data if required
-		if( useScaling ){
-			for(UINT i=0; i<numInputDimensions; i++)
-				x[i].value = scale(x[i].value,ranges[i].minValue,ranges[i].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
-		}
-
-		//Perform the SVM prediction
-		double predict_label = svm_predict(model,x);
-
-        //We can't do null rejection without the probabilities, so just set the predicted class
-        predictedClassLabel = (UINT)predict_label;
-
-		//Clean up the memory
-		delete[] x;
-
-		return true;
+    if( !trained || inputVector.size() != numInputDimensions ) return false;
+    
+    svm_node *x = NULL;
+    
+    //Copy the input data into the SVM format
+    x = new svm_node[numInputDimensions+1];
+    for(UINT j=0; j<numInputDimensions; j++){
+        x[j].index = (int)j+1;
+        x[j].value = inputVector[j];
+    }
+    //The last value in the input vector must be set to -1
+    x[numInputDimensions].index = -1;
+    x[numInputDimensions].value = 0;
+    
+    //Scale the input data if required
+    if( useScaling ){
+        for(UINT i=0; i<numInputDimensions; i++)
+        x[i].value = grt_scale(x[i].value,ranges[i].minValue,ranges[i].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
+    }
+    
+    //Perform the SVM prediction
+    Float predict_label = svm_predict(model,x);
+    
+    //We can't do null rejection without the probabilities, so just set the predicted class
+    predictedClassLabel = (UINT)predict_label;
+    
+    //Clean up the memory
+    delete[] x;
+    
+    return true;
 }
 
-bool SVM::predictSVM(VectorDouble &inputVector,double &maxProbability, VectorDouble &probabilites){
-
-		if( !trained || param.probability == 0 || inputVector.size() != numInputDimensions ) return false;
-
-		double *prob_estimates = NULL;
-		svm_node *x = NULL;
-
-		//Setup the memory for the probability estimates
-		prob_estimates = new double[ model->nr_class ];
-
-		//Copy the input data into the SVM format
-		x = new svm_node[numInputDimensions+1];
-		for(UINT j=0; j<numInputDimensions; j++){
-			x[j].index = (int)j+1;
-			x[j].value = inputVector[j];
-		}
-		//The last value in the input vector must be set to -1
-		x[numInputDimensions].index = -1;
-		x[numInputDimensions].value = 0;
-
-		//Scale the input data if required
-		if( useScaling ){
-			for(UINT j=0; j<numInputDimensions; j++)
-				x[j].value = scale(x[j].value,ranges[j].minValue,ranges[j].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
-		}
-
-		//Perform the SVM prediction
-		double predict_label = svm_predict_probability(model,x,prob_estimates);
-
-		predictedClassLabel = 0;
-		maxProbability = 0;
-		probabilites.resize(model->nr_class);
-		for(int k=0; k<model->nr_class; k++){
-			if( maxProbability < prob_estimates[k] ){
-				maxProbability = prob_estimates[k];
-                predictedClassLabel = k+1;
-                maxLikelihood = maxProbability;
-            }
-			probabilites[k] = prob_estimates[k];
-		}
-
-        if( !useNullRejection ) predictedClassLabel = (UINT)predict_label;
-        else{
-            if( maxProbability >= classificationThreshold ){
-                predictedClassLabel = (UINT)predict_label;
-            }else predictedClassLabel = GRT_DEFAULT_NULL_CLASS_LABEL;
+bool SVM::predictSVM(VectorFloat &inputVector,Float &maxProbability, VectorFloat &probabilites){
+    
+    if( !trained || param.probability == 0 || inputVector.size() != numInputDimensions ) return false;
+    
+    Float *prob_estimates = NULL;
+    svm_node *x = NULL;
+    
+    //Setup the memory for the probability estimates
+    prob_estimates = new Float[ model->nr_class ];
+    
+    //Copy the input data into the SVM format
+    x = new svm_node[numInputDimensions+1];
+    for(UINT j=0; j<numInputDimensions; j++){
+        x[j].index = (int)j+1;
+        x[j].value = inputVector[j];
+    }
+    //The last value in the input vector must be set to -1
+    x[numInputDimensions].index = -1;
+    x[numInputDimensions].value = 0;
+    
+    //Scale the input data if required
+    if( useScaling ){
+        for(UINT j=0; j<numInputDimensions; j++)
+        x[j].value = grt_scale(x[j].value,ranges[j].minValue,ranges[j].maxValue,SVM_MIN_SCALE_RANGE,SVM_MAX_SCALE_RANGE);
+    }
+    
+    //Perform the SVM prediction
+    Float predict_label = svm_predict_probability(model,x,prob_estimates);
+    
+    predictedClassLabel = 0;
+    maxProbability = 0;
+    probabilites.resize(model->nr_class);
+    for(int k=0; k<model->nr_class; k++){
+        if( maxProbability < prob_estimates[k] ){
+            maxProbability = prob_estimates[k];
+            predictedClassLabel = k+1;
+            maxLikelihood = maxProbability;
         }
-
-		//Clean up the memory
-		delete[] prob_estimates;
-		delete[] x;
-
-		return true;
-}
+        probabilites[k] = prob_estimates[k];
+    }
     
+    if( !useNullRejection ) predictedClassLabel = (UINT)predict_label;
+    else{
+        if( maxProbability >= classificationThreshold ){
+            predictedClassLabel = (UINT)predict_label;
+        }else predictedClassLabel = GRT_DEFAULT_NULL_CLASS_LABEL;
+    }
+    
+    //Clean up the memory
+    delete[] prob_estimates;
+    delete[] x;
+    
+    return true;
+}
+
 bool SVM::convertClassificationDataToLIBSVMFormat(ClassificationData &trainingData){
     
     //clear any previous problems
@@ -476,7 +473,7 @@ bool SVM::convertClassificationDataToLIBSVMFormat(ClassificationData &trainingDa
     //Init the memory
     prob.l = numTrainingExamples;
     prob.x = new svm_node*[numTrainingExamples];
-    prob.y = new double[numTrainingExamples];
+    prob.y = new Float[numTrainingExamples];
     problemSet = true;
     
     for(UINT i=0; i<numTrainingExamples; i++){
@@ -496,7 +493,7 @@ bool SVM::convertClassificationDataToLIBSVMFormat(ClassificationData &trainingDa
     return true;
 }
 
-bool SVM::saveModelToFile(fstream &file) const{
+bool SVM::save( std::fstream &file ) const{
     
     if( !file.is_open() ){
         return false;
@@ -506,8 +503,8 @@ bool SVM::saveModelToFile(fstream &file) const{
     
     //Write the classifier settings to the file
     if( !Classifier::saveBaseSettingsToFile(file) ){
-        errorLog <<"saveModelToFile(fstream &file) - Failed to save classifier base settings to file!" << endl;
-		return false;
+        errorLog <<"save(fstream &file) - Failed to save classifier base settings to file!" << std::endl;
+        return false;
     }
     
     const svm_parameter& param = trained ? model->param : this->param;
@@ -515,62 +512,62 @@ bool SVM::saveModelToFile(fstream &file) const{
     file << "ModelType: ";
     switch( param.svm_type ){
         case(C_SVC):
-            file << "C_SVC";
-            break;
+        file << "C_SVC";
+        break;
         case(NU_SVC):
-            file << "NU_SVC";
-            break;
+        file << "NU_SVC";
+        break;
         case(ONE_CLASS):
-            file << "ONE_CLASS";
-            break;
+        file << "ONE_CLASS";
+        break;
         case(EPSILON_SVR):
-            file << "EPSILON_SVR";
-            break;
+        file << "EPSILON_SVR";
+        break;
         case(NU_SVR):
-            file << "NU_SVR";
-            break;
+        file << "NU_SVR";
+        break;
         default:
-            errorLog << "saveModelToFile(fstream &file) - Invalid model type: " << param.svm_type << endl;
-            return false;
-            break;
+        errorLog << "save(fstream &file) - Invalid model type: " << param.svm_type << std::endl;
+        return false;
+        break;
     }
-    file << endl;
+    file << std::endl;
     
     file << "KernelType: ";
     switch(param.kernel_type){
         case(LINEAR):
-            file << "LINEAR";
-            break;
+        file << "LINEAR";
+        break;
         case(POLY):
-            file << "POLYNOMIAL";
-            break;
+        file << "POLYNOMIAL";
+        break;
         case(RBF):
-            file << "RBF";
-            break;
+        file << "RBF";
+        break;
         case(SIGMOID):
-            file << "SIGMOID";
-            break;
+        file << "SIGMOID";
+        break;
         case(PRECOMPUTED):
-            file << "PRECOMPUTED";
-            break;
+        file << "PRECOMPUTED";
+        break;
         default:
-            errorLog << "saveModelToFile(fstream &file) - Invalid kernel type: " << param.kernel_type << endl;
-            return false;
-            break;
+        errorLog << "save(fstream &file) - Invalid kernel type: " << param.kernel_type << std::endl;
+        return false;
+        break;
     }
-    file << endl;
-    file << "Degree: " << param.degree << endl;
-    file << "Gamma: " << param.gamma << endl;
-    file << "Coef0: " << param.coef0 << endl;
-    file << "NumberOfFeatures: " << numInputDimensions << endl;
-    file << "UseShrinking: " << param.shrinking << endl;
-    file << "UseProbability: " << param.probability << endl;
+    file << std::endl;
+    file << "Degree: " << param.degree << std::endl;
+    file << "Gamma: " << param.gamma << std::endl;
+    file << "Coef0: " << param.coef0 << std::endl;
+    file << "NumberOfFeatures: " << numInputDimensions << std::endl;
+    file << "UseShrinking: " << param.shrinking << std::endl;
+    file << "UseProbability: " << param.probability << std::endl;
     
     if( trained ){
         UINT numClasses = (UINT)model->nr_class;
         UINT numSV = (UINT)model->l;
-        file << "NumberOfSupportVectors: " << numSV << endl;
-    
+        file << "NumberOfSupportVectors: " << numSV << std::endl;
+        
         file << "RHO: \n";
         for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file << model->rho[i] << "\t";
         file << "\n";
@@ -601,12 +598,12 @@ bool SVM::saveModelToFile(fstream &file) const{
         
         file << "SupportVectors: \n";
         
-        const double * const *sv_coef = model->sv_coef;
+        const Float * const *sv_coef = model->sv_coef;
         const svm_node * const *SV = model->SV;
         
         for(UINT i=0;i<numSV;i++){
             for(UINT j=0;j<numClasses-1;j++)
-                file << sv_coef[j][i] << "\t";
+            file << sv_coef[j][i] << "\t";
             
             const svm_node *p = SV[i];
             
@@ -623,10 +620,10 @@ bool SVM::saveModelToFile(fstream &file) const{
     
     return true;
 }
+
+bool SVM::load( std::fstream &file ){
     
-bool SVM::loadModelFromFile(fstream &file){
-    
-    string word;
+    std::string word;
     UINT numSV = 0;
     UINT halfNumClasses = 0;
     
@@ -634,7 +631,7 @@ bool SVM::loadModelFromFile(fstream &file){
     clear();
     
     if( !file.is_open() ){
-        errorLog << "loadModelFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "load(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
@@ -648,14 +645,14 @@ bool SVM::loadModelFromFile(fstream &file){
     
     //Check to make sure this is a file with the correct File Format
     if( word != "SVM_MODEL_FILE_V2.0" ){
-        errorLog << "loadModelFromFile(fstream &file) - Invalid file format!" << endl;
+        errorLog << "load(fstream &file) - Invalid file format!" << std::endl;
         clear();
         return false;
     }
-
+    
     //Load the base settings from the file
     if( !Classifier::loadBaseSettingsFromFile(file) ){
-        errorLog << "loadModelFromFile(string filename) - Failed to load base settings from file!" << endl;
+        errorLog << "load(string filename) - Failed to load base settings from file!" << std::endl;
         return false;
     }
     
@@ -690,11 +687,11 @@ bool SVM::loadModelFromFile(fstream &file){
     model->param.p = 0;
     model->param.shrinking = 0;
     model->param.probability = 1;
-
+    
     //Load the model type
     file >> word;
     if(word != "ModelType:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find ModelType header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find ModelType header!" << std::endl;
         clear();
         return false;
     }
@@ -706,7 +703,7 @@ bool SVM::loadModelFromFile(fstream &file){
             model->param.svm_type = NU_SVC;
         }else{
             if( word == "ONE_CLASS" ){
-                model->param.svm_type = ONE_CLASS; 
+                model->param.svm_type = ONE_CLASS;
             }else{
                 if( word == "EPSILON_SVR" ){
                     model->param.svm_type = EPSILON_SVR;
@@ -714,7 +711,7 @@ bool SVM::loadModelFromFile(fstream &file){
                     if( word == "NU_SVR" ){
                         model->param.svm_type = NU_SVR;
                     }else{
-                        errorLog << "loadModelFromFile(fstream &file) - Failed to find SVM type!" << endl;
+                        errorLog << "load(fstream &file) - Failed to find SVM type!" << std::endl;
                         clear();
                         return false;
                     }
@@ -726,7 +723,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the model type
     file >> word;
     if(word != "KernelType:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find kernel type!" << endl;
+        errorLog << "load(fstream &file) - Failed to find kernel type!" << std::endl;
         clear();
         return false;
     }
@@ -738,7 +735,7 @@ bool SVM::loadModelFromFile(fstream &file){
             model->param.kernel_type = POLY;
         }else{
             if( word == "RBF" ){
-                model->param.kernel_type = RBF; 
+                model->param.kernel_type = RBF;
             }else{
                 if( word == "SIGMOID" ){
                     model->param.kernel_type = SIGMOID;
@@ -746,7 +743,7 @@ bool SVM::loadModelFromFile(fstream &file){
                     if( word == "PRECOMPUTED" ){
                         model->param.kernel_type = PRECOMPUTED;
                     }else{
-                        errorLog << "loadModelFromFile(fstream &file) - Failed to find kernel type!" << endl;
+                        errorLog << "load(fstream &file) - Failed to find kernel type!" << std::endl;
                         clear();
                         return false;
                     }
@@ -758,7 +755,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the degree
     file >> word;
     if(word != "Degree:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find Degree header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find Degree header!" << std::endl;
         clear();
         return false;
     }
@@ -767,7 +764,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the gamma
     file >> word;
     if(word != "Gamma:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find Gamma header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find Gamma header!" << std::endl;
         clear();
         return false;
     }
@@ -776,7 +773,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the Coef0
     file >> word;
     if(word != "Coef0:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find Coef0 header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find Coef0 header!" << std::endl;
         clear();
         return false;
     }
@@ -785,7 +782,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the NumberOfFeatures
     file >> word;
     if(word != "NumberOfFeatures:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find NumberOfFeatures header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find NumberOfFeatures header!" << std::endl;
         clear();
         return false;
     }
@@ -794,7 +791,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the UseShrinking
     file >> word;
     if(word != "UseShrinking:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find UseShrinking header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find UseShrinking header!" << std::endl;
         clear();
         return false;
     }
@@ -803,7 +800,7 @@ bool SVM::loadModelFromFile(fstream &file){
     //Load the UseProbability
     file >> word;
     if(word != "UseProbability:"){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to find UseProbability header!" << endl;
+        errorLog << "load(fstream &file) - Failed to find UseProbability header!" << std::endl;
         clear();
         return false;
     }
@@ -813,7 +810,7 @@ bool SVM::loadModelFromFile(fstream &file){
         //Load the NumberOfSupportVectors
         file >> word;
         if(word != "NumberOfSupportVectors:"){
-            errorLog << "loadModelFromFile(fstream &file) - Failed to find NumberOfSupportVectors header!" << endl;
+            errorLog << "load(fstream &file) - Failed to find NumberOfSupportVectors header!" << std::endl;
             clear();
             return false;
         }
@@ -827,11 +824,11 @@ bool SVM::loadModelFromFile(fstream &file){
         //Load the RHO
         file >> word;
         if(word != "RHO:"){
-            errorLog << "loadModelFromFile(fstream &file) - Failed to find RHO header!" << endl;
+            errorLog << "load(fstream &file) - Failed to find RHO header!" << std::endl;
             clear();
             return false;
         }
-        model->rho = new double[ halfNumClasses ];
+        model->rho = new Float[ halfNumClasses ];
         for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->rho[i];
         
         //See if we can load the Labels
@@ -850,7 +847,7 @@ bool SVM::loadModelFromFile(fstream &file){
         if(word != "ProbA:"){
             model->probA = NULL;
         }else{
-            model->probA = new double[ halfNumClasses ];
+            model->probA = new Float[ halfNumClasses ];
             for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->probA[i];
             //We only need to read a new line if we found the label!
             file >> word;
@@ -861,7 +858,7 @@ bool SVM::loadModelFromFile(fstream &file){
         if(word != "ProbB:"){
             model->probB = NULL;
         }else{
-            model->probB = new double[ halfNumClasses ];
+            model->probB = new Float[ halfNumClasses ];
             for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->probB[i];
             //We only need to read a new line if we found the label!
             file >> word;
@@ -881,14 +878,14 @@ bool SVM::loadModelFromFile(fstream &file){
         //Load the SupportVectors
         //We don't need to read another line here
         if(word != "SupportVectors:"){
-            errorLog << "loadModelFromFile(fstream &file) - Failed to find SupportVectors header!" << endl;
+            errorLog << "load(fstream &file) - Failed to find SupportVectors header!" << std::endl;
             clear();
             return false;
         }
         
         //Setup the memory
-        model->sv_coef = new double*[numClasses-1];
-        for(UINT j=0;j<numClasses-1;j++) model->sv_coef[j] = new double[numSV];
+        model->sv_coef = new Float*[numClasses-1];
+        for(UINT j=0;j<numClasses-1;j++) model->sv_coef[j] = new Float[numSV];
         model->SV = new svm_node*[numSV];
         
         for(UINT i=0; i<numSV; i++){
@@ -928,7 +925,7 @@ bool SVM::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
+
 bool SVM::clear(){
     
     //Clear the base class
@@ -942,172 +939,235 @@ bool SVM::clear(){
     
     return true;
 }
-    
+
 bool SVM::getIsCrossValidationTrainingEnabled() const{
     return useCrossValidation;
 }
-    
+
 bool SVM::getIsAutoGammaEnabled() const{
     return useAutoGamma;
 }
+
+std::string SVM::getSVMType() const{
     
-string SVM::getSVMType() const{
-
-	const struct svm_parameter *paramPtr = NULL;
-	string modelName = "UNKNOWN";
-	if( trained ){
-		paramPtr = &model->param;
-	}else paramPtr = &param;
-
-	switch(paramPtr->svm_type){
-			case(C_SVC):
-				modelName =  "C_SVC";
-				break;
-			case(NU_SVC):
-				modelName = "NU_SVC";
-				break;
-			case(ONE_CLASS):
-				modelName = "ONE_CLASS";
-				break;
-			case(EPSILON_SVR):
-				modelName = "EPSILON_SVR";
-				break;
-			case(NU_SVR):
-				modelName = "NU_SVR";
-				break;
-			default:
-				break;
-	}
-
-	return modelName;
-}
-    
-string SVM::getKernelType() const{
     const struct svm_parameter *paramPtr = NULL;
-    string modelName = "UNKNOWN";
+    std::string modelName = "UNKNOWN";
+    if( trained ){
+        paramPtr = &model->param;
+    }else paramPtr = &param;
+    
+    switch(paramPtr->svm_type){
+        case(C_SVC):
+        modelName =  "C_SVC";
+        break;
+        case(NU_SVC):
+        modelName = "NU_SVC";
+        break;
+        case(ONE_CLASS):
+        modelName = "ONE_CLASS";
+        break;
+        case(EPSILON_SVR):
+        modelName = "EPSILON_SVR";
+        break;
+        case(NU_SVR):
+        modelName = "NU_SVR";
+        break;
+        default:
+        break;
+    }
+    
+    return modelName;
+}
+
+std::string SVM::getKernelType() const{
+    const struct svm_parameter *paramPtr = NULL;
+    std::string modelName = "UNKNOWN";
     if( trained ){
         paramPtr = &model->param;
     }else paramPtr = &param;
     
     switch(paramPtr->kernel_type){
         case(LINEAR_KERNEL):
-            modelName =  "LINEAR_KERNEL";
-            break;
+        modelName =  "LINEAR_KERNEL";
+        break;
         case(POLY_KERNEL):
-            modelName = "POLY_KERNEL";
-            break;
+        modelName = "POLY_KERNEL";
+        break;
         case(RBF_KERNEL):
-            modelName = "RBF_KERNEL";
-            break;
+        modelName = "RBF_KERNEL";
+        break;
         case(SIGMOID_KERNEL):
-            modelName = "SIGMOID_KERNEL";
-            break;
+        modelName = "SIGMOID_KERNEL";
+        break;
         case(PRECOMPUTED_KERNEL):
-            modelName = "PRECOMPUTED_KERNEL";
-            break;
+        modelName = "PRECOMPUTED_KERNEL";
+        break;
         default:
-            break;
+        break;
     }
     return modelName;
 }
-    
+
 UINT SVM::getNumClasses() const{
     if( !trained ) return 0;
     return (UINT) model->nr_class;
 }
-    
+
 UINT SVM::getDegree() const{
     if( trained ){
         return (UINT)model->param.degree;
     }
     return (UINT)param.gamma;
 }
-    
-double SVM::getGamma() const{
+
+Float SVM::getGamma() const{
     if( trained ){
         return model->param.gamma;
     }
     return param.gamma;
 }
-    
-double SVM::getNu() const{
+
+Float SVM::getNu() const{
     if( trained ){
         return model->param.nu;
     }
     return param.gamma;
 }
 
-double SVM::getCoef0() const{
+Float SVM::getCoef0() const{
     if( trained ){
         return model->param.coef0;
     }
     return param.gamma;
 }
 
-double SVM::getC() const{
+Float SVM::getC() const{
     if( trained ){
         return model->param.C;
     }
     return param.gamma;
 }
-    
-double SVM::getCrossValidationResult() const{ return crossValidationResult; }
 
-bool SVM::setSVMType(const UINT svmType){
+Float SVM::getCrossValidationResult() const{ return crossValidationResult; }
+
+struct LIBSVM::svm_model* SVM::getLIBSVMModel() const { return model; }
+
+SVMModel SVM::getModel() const {
+    SVMModel m;
+    if( !model ){
+        m.numClasses = 0;
+        return m;
+    }
+
+    m.numInputDimensions = numInputDimensions;
+    m.numClasses = model->nr_class;
+    m.totalSV = model->l;
+    const unsigned int halfNumClasses = numClasses*(numClasses-1)/2;
+
+    m.classLabels.resize( m.numClasses );
+    m.numSVPerClass.resize( m.numClasses );
+    m.sv.resize( m.numClasses );
+    m.svCoeff.resize( m.numClasses );
+    m.rho.resize( halfNumClasses );
+
+    //Get the indexs for each class
+    Vector<int> start( m.numClasses );
+    start[0] = 0;
+    for(unsigned int k=1; k<m.numClasses; k++){
+        start[k] = start[k-1] + model->nSV[k-1];
+    }
+
+    for(unsigned int k=0; k<m.numClasses; k++){
+        m.classLabels[k] = (unsigned int)model->label[k];
+        m.numSVPerClass[k] = model->nSV[k];
+        m.svCoeff[k].resize( m.numSVPerClass[k] );
+        m.sv[k].resize( m.numSVPerClass[k], numInputDimensions );
+        m.sv[k].setAll( 0.0 );
+    }
+
+    //Copy the RHO
+    for(unsigned int i=0; i<halfNumClasses; i++) m.rho[i] = model->rho[i];
+
+    //Copy the class SV coeff
+    for(unsigned int k=0; k<m.numClasses; k++){
+        for(unsigned int i=0; i<m.numSVPerClass[k]; i++){
+            m.svCoeff[k][i] = 0.0;
+        }
+    }
+
+    //Copy the support vectors for each class
+    unsigned int svIndex = 0;
+    for(unsigned int k=0; k<m.numClasses; k++){
+        for(unsigned int i=0; i<m.numSVPerClass[k]; i++){
+            unsigned int idx = start[k]+i;
+            const svm_node *px = model->SV[svIndex++];
+            while( px->index != -1 )
+            {
+                m.sv[k][i][px->index] = px->value;
+                ++px;      
+            }
+        }
+    }
+
+    return m;
+}
+
+bool SVM::setSVMType(const SVMType svmType){
     if( validateSVMType(svmType) ){
         param.svm_type = (int)svmType;
         return true;
     }
     return false;
 }
-    
-bool SVM::setKernelType(const UINT kernelType){
+
+bool SVM::setKernelType(const KernelType kernelType){
+
     if( validateKernelType(kernelType) ){
         param.kernel_type = (int)kernelType;
         return true;
     }
-    warningLog << "setKernelType(UINT kernelType) - Failed to set kernel type, unknown kernelType!" << endl;
+    warningLog << "setKernelType(UINT kernelType) - Failed to set kernel type, unknown kernelType!" << std::endl;
     return false;
 }
-    
-bool SVM::setGamma(const double gamma){
+
+bool SVM::setGamma(const Float gamma){
     if( !useAutoGamma ){
         this->param.gamma = gamma;
         return true;
     }
-    warningLog << "setGamma(double gamma) - Failed to set gamma, useAutoGamma is enabled, setUseAutoGamma to false first!" << endl;
+    warningLog << "setGamma(Float gamma) - Failed to set gamma, useAutoGamma is enabled, setUseAutoGamma to false first!" << std::endl;
     return false;
 }
-    
+
 bool SVM::setDegree(const UINT degree){
     this->param.degree = (int)degree;
     return true;
 }
-    
-bool SVM::setNu(const double nu){
+
+bool SVM::setNu(const Float nu){
     this->param.nu = nu;
     return true;
 }
 
-bool SVM::setCoef0(const double coef0){
+bool SVM::setCoef0(const Float coef0){
     this->param.coef0 = coef0;
     return true;
 }
 
-bool SVM::setC(const double C){
+bool SVM::setC(const Float C){
     this->param.C = C;
     return true;
 }
-    
+
 bool SVM::setKFoldCrossValidationValue(const UINT kFoldValue){
     if( kFoldValue > 0 ){
         this->kFoldValue = kFoldValue;
         return true;
     }
-    warningLog << "setKFoldCrossValidationValue(const UINT kFoldValue) - Failed to set kFoldValue, the kFoldValue must be greater than 0!" << endl;
+    warningLog << "setKFoldCrossValidationValue(const UINT kFoldValue) - Failed to set kFoldValue, the kFoldValue must be greater than 0!" << std::endl;
     return false;
 }
-    
+
 bool SVM::enableAutoGamma(const bool useAutoGamma){
     this->useAutoGamma = useAutoGamma;
     return true;
@@ -1117,8 +1177,8 @@ bool SVM::enableCrossValidationTraining(const bool useCrossValidation){
     this->useCrossValidation = useCrossValidation;
     return true;
 }
-    
-bool SVM::validateSVMType(const UINT svmType){
+ 
+bool SVM::validateSVMType(const SVMType svmType){
     if( svmType == C_SVC ){
         return true;
     }
@@ -1136,8 +1196,8 @@ bool SVM::validateSVMType(const UINT svmType){
     }
     return false;
 }
-    
-bool SVM::validateKernelType(const UINT kernelType){
+
+bool SVM::validateKernelType(const KernelType kernelType){
     if( kernelType == LINEAR_KERNEL ){
         return true;
     }
@@ -1155,7 +1215,7 @@ bool SVM::validateKernelType(const UINT kernelType){
     }
     return false;
 }
-    
+
 struct svm_model* SVM::deepCopyModel() const{
     
     if( model == NULL ) return NULL;
@@ -1207,8 +1267,8 @@ struct svm_model* SVM::deepCopyModel() const{
     
     //Setup the values
     halfNumClasses = model->nr_class*(model->nr_class-1)/2;
-
-    m->rho = new double[ halfNumClasses ];
+    
+    m->rho = new Float[ halfNumClasses ];
     for(int i=0;i <model->nr_class*(model->nr_class-1)/2; i++) m->rho[i] = model->rho[i];
     
     if( model->label != NULL ){
@@ -1217,12 +1277,12 @@ struct svm_model* SVM::deepCopyModel() const{
     }
     
     if( model->probA != NULL ){
-        m->probA = new double[ halfNumClasses ];
+        m->probA = new Float[ halfNumClasses ];
         for(UINT i=0;i<halfNumClasses; i++) m->probA[i] = model->probA[i];
     }
     
     if( model->probB != NULL ){
-        m->probB = new double[ halfNumClasses ];
+        m->probB = new Float[ halfNumClasses ];
         for(UINT i=0; i<halfNumClasses; i++) m->probB[i] = model->probB[i];
     }
     
@@ -1232,8 +1292,8 @@ struct svm_model* SVM::deepCopyModel() const{
     }
     
     //Setup the memory
-    m->sv_coef = new double*[numClasses-1];
-    for(UINT j=0;j<numClasses-1;j++) m->sv_coef[j] = new double[model->l];
+    m->sv_coef = new Float*[numClasses-1];
+    for(UINT j=0;j<numClasses-1;j++) m->sv_coef[j] = new Float[model->l];
     m->SV = new svm_node*[model->l];
     
     for(int i=0; i<model->l; i++){
@@ -1261,7 +1321,7 @@ struct svm_model* SVM::deepCopyModel() const{
 }
 
 bool SVM::deepCopyProblem( const struct svm_problem &source, struct svm_problem &target, const unsigned int numInputDimensions ) const{
-
+    
     //Cleanup the target memory
     if( target.y != NULL ){
         delete[] target.y;
@@ -1273,10 +1333,10 @@ bool SVM::deepCopyProblem( const struct svm_problem &source, struct svm_problem 
             target.x[i] = NULL;
         }
     }
-
+    
     //Deep copy the source to the target
     target.l = source.l;
-
+    
     if( source.x != NULL ){
         target.x = new svm_node*[ target.l ];
         for(int i=0; i<target.l; i++){
@@ -1286,19 +1346,19 @@ bool SVM::deepCopyProblem( const struct svm_problem &source, struct svm_problem 
             }
         }
     }
-
+    
     if( source.y != NULL ){
-        target.y = new double[ target.l ];
+        target.y = new Float[ target.l ];
         for(int i=0; i<target.l; i++){
             target.y[i] = source.y[i];
         }
     }
-
+    
     return true;
 }
 
 bool SVM::deepCopyParam( const svm_parameter &source_param, svm_parameter &target_param ) const{
-
+    
     //Cleanup any dynamic memory in the target
     if( target_param.weight_label != NULL ){
         delete[] target_param.weight_label;
@@ -1308,7 +1368,7 @@ bool SVM::deepCopyParam( const svm_parameter &source_param, svm_parameter &targe
         delete[] target_param.weight;
         target_param.weight = NULL;
     }
-
+    
     //Copy the non dynamic variables
     target_param.svm_type = source_param.svm_type;
     target_param.kernel_type = source_param.kernel_type;
@@ -1323,21 +1383,21 @@ bool SVM::deepCopyParam( const svm_parameter &source_param, svm_parameter &targe
     target_param.p = source_param.p;
     target_param.shrinking = source_param.shrinking;
     target_param.probability = source_param.probability;
-
+    
     //Copy any dynamic memory
     if( source_param.weight_label != NULL ){
-
+        
     }
     if( source_param.weight != NULL ){
-
+        
     }
-
+    
     return true;
 }
+
+bool SVM::loadLegacyModelFromFile( std::fstream &file ){
     
-bool SVM::loadLegacyModelFromFile( fstream &file ){
-    
-    string word;
+    std::string word;
     
     UINT numSV = 0;
     UINT halfNumClasses = 0;
@@ -1378,7 +1438,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the model type
     file >> word;
     if(word != "ModelType:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find ModelType header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find ModelType header!" << std::endl;
         clear();
         return false;
     }
@@ -1398,7 +1458,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
                     if( word == "NU_SVR" ){
                         model->param.svm_type = NU_SVR;
                     }else{
-                        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find SVM type!" << endl;
+                        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find SVM type!" << std::endl;
                         clear();
                         return false;
                     }
@@ -1410,7 +1470,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the model type
     file >> word;
     if(word != "KernelType:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find kernel type!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find kernel type!" << std::endl;
         clear();
         return false;
     }
@@ -1430,7 +1490,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
                     if( word == "PRECOMPUTED" ){
                         model->param.kernel_type = PRECOMPUTED;
                     }else{
-                        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find kernel type!" << endl;
+                        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find kernel type!" << std::endl;
                         clear();
                         return false;
                     }
@@ -1442,7 +1502,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the degree
     file >> word;
     if(word != "Degree:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Degree header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Degree header!" << std::endl;
         clear();
         return false;
     }
@@ -1451,7 +1511,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the gamma
     file >> word;
     if(word != "Gamma:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Gamma header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Gamma header!" << std::endl;
         clear();
         return false;
     }
@@ -1460,7 +1520,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the Coef0
     file >> word;
     if(word != "Coef0:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Coef0 header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Coef0 header!" << std::endl;
         clear();
         return false;
     }
@@ -1469,7 +1529,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the NumberOfClasses
     file >> word;
     if(word != "NumberOfClasses:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfClasses header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfClasses header!" << std::endl;
         clear();
         return false;
     }
@@ -1478,7 +1538,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the NumberOfSupportVectors
     file >> word;
     if(word != "NumberOfSupportVectors:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfSupportVectors header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfSupportVectors header!" << std::endl;
         clear();
         return false;
     }
@@ -1487,7 +1547,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the NumberOfFeatures
     file >> word;
     if(word != "NumberOfFeatures:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfFeatures header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find NumberOfFeatures header!" << std::endl;
         clear();
         return false;
     }
@@ -1496,7 +1556,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the UseShrinking
     file >> word;
     if(word != "UseShrinking:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseShrinking header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseShrinking header!" << std::endl;
         clear();
         return false;
     }
@@ -1505,7 +1565,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the UseProbability
     file >> word;
     if(word != "UseProbability:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseProbability header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseProbability header!" << std::endl;
         clear();
         return false;
     }
@@ -1514,7 +1574,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the UseScaling
     file >> word;
     if(word != "UseScaling:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseScaling header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find UseScaling header!" << std::endl;
         clear();
         return false;
     }
@@ -1523,7 +1583,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the Ranges
     file >> word;
     if(word != "Ranges:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Ranges header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find Ranges header!" << std::endl;
         clear();
         return false;
     }
@@ -1545,11 +1605,11 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the RHO
     file >> word;
     if(word != "RHO:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find RHO header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find RHO header!" << std::endl;
         clear();
         return false;
     }
-    model->rho = new double[ halfNumClasses ];
+    model->rho = new Float[ halfNumClasses ];
     for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->rho[i];
     
     //See if we can load the Labels
@@ -1568,7 +1628,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     if(word != "ProbA:"){
         model->probA = NULL;
     }else{
-        model->probA = new double[ halfNumClasses ];
+        model->probA = new Float[ halfNumClasses ];
         for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->probA[i];
         //We only need to read a new line if we found the label!
         file >> word;
@@ -1579,7 +1639,7 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     if(word != "ProbB:"){
         model->probB = NULL;
     }else{
-        model->probB = new double[ halfNumClasses ];
+        model->probB = new Float[ halfNumClasses ];
         for(UINT i=0;i<numClasses*(numClasses-1)/2;i++) file >> model->probB[i];
         //We only need to read a new line if we found the label!
         file >> word;
@@ -1599,14 +1659,14 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     //Load the SupportVectors
     //We don't need to read another line here
     if(word != "SupportVectors:"){
-        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find SupportVectors header!" << endl;
+        errorLog << "loadLegacyModelFromFile(fstream &file) - Failed to find SupportVectors header!" << std::endl;
         clear();
         return false;
     }
     
     //Setup the memory
-    model->sv_coef = new double*[numClasses-1];
-    for(UINT j=0;j<numClasses-1;j++) model->sv_coef[j] = new double[numSV];
+    model->sv_coef = new Float*[numClasses-1];
+    for(UINT j=0;j<numClasses-1;j++) model->sv_coef[j] = new Float[numSV];
     model->SV = new svm_node*[numSV];
     
     for(UINT i=0; i<numSV; i++){
@@ -1642,5 +1702,5 @@ bool SVM::loadLegacyModelFromFile( fstream &file ){
     
     return true;
 }
-    
-} //End of namespace GRT
+
+GRT_END_NAMESPACE

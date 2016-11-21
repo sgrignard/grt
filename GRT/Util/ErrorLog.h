@@ -21,12 +21,12 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef GRT_ERROR_LOG_HEADER
 #define GRT_ERROR_LOG_HEADER
 
-#include "Log.h"
 #include "ObserverManager.h"
+#include "Log.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
 
-class ErrorLogMessage{
+class GRT_API ErrorLogMessage{
 public:
     ErrorLogMessage(std::string proceedingText = "",std::string message = ""){
         this->proceedingText = proceedingText;
@@ -48,7 +48,7 @@ public:
     std::string message;
 };
     
-class ErrorLog : public Log{
+class GRT_API ErrorLog : public Log {
 public:
     ErrorLog(std::string proceedingText = ""){
         setProceedingText(proceedingText);
@@ -75,6 +75,8 @@ public:
     static bool enableLogging(bool loggingEnabled);
     
     static bool registerObserver(Observer< ErrorLogMessage > &observer);
+
+    static bool removeObserver(Observer< ErrorLogMessage > &observer);
     
 protected:
     virtual void triggerCallback( const std::string &message ) const{
@@ -86,6 +88,6 @@ protected:
     static bool errorLoggingEnabled;
 };
 
-} //End of namespace GRT
+GRT_END_NAMESPACE
 
 #endif //GRT_ERROR_LOG_HEADER

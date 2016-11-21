@@ -24,9 +24,9 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "Log.h"
 #include "ObserverManager.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
     
-class TrainingLogMessage{
+class GRT_API TrainingLogMessage{
 public:
     TrainingLogMessage(std::string proceedingText = "",std::string message = ""){
         this->proceedingText = proceedingText;
@@ -48,7 +48,7 @@ public:
     std::string message;
 };
 
-class TrainingLog : public Log{
+class GRT_API TrainingLog : public Log{
 public:
     TrainingLog(std::string proceedingText = ""){ setProceedingText(proceedingText); Log::loggingEnabledPtr = &trainingLoggingEnabled; }
 
@@ -73,6 +73,8 @@ public:
     static bool enableLogging(bool loggingEnabled);
     
     static bool registerObserver(Observer< TrainingLogMessage > &observer);
+
+    static bool removeObserver(Observer< TrainingLogMessage > &observer);
     
 protected:
     virtual void triggerCallback( const std::string &message ) const{
@@ -84,6 +86,6 @@ protected:
     static ObserverManager< TrainingLogMessage > observerManager;
 };
 
-}; //End of namespace GRT
+GRT_END_NAMESPACE
 
 #endif //GRT_TRAINING_LOG_HEADER

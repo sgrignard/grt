@@ -18,9 +18,10 @@
  SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-//Include the main GRT header
+//You might need to set the specific path of the GRT header relative to your project
 #include <GRT/GRT.h>
 using namespace GRT;
+using namespace std;
 
 int main (int argc, const char * argv[])
 {
@@ -45,7 +46,7 @@ int main (int argc, const char * argv[])
     //Partition the training data into a training dataset and a test dataset. 80 means that 80%
     //of the data will be used for the training data and 20% will be returned as the test dataset
     cout << "Splitting data into training/test split..." << endl;
-    ClassificationData testData = trainingData.partition(80);
+    ClassificationData testData = trainingData.split(80);
     
     //Create a new Gesture Recognition Pipeline using an Adaptive Naive Bayes Classifier
     GestureRecognitionPipeline pipeline;
@@ -98,7 +99,7 @@ int main (int argc, const char * argv[])
         cout << "\t" << pipeline.getTestFMeasure(classLabel);
     }cout << endl;
     
-    MatrixDouble confusionMatrix = pipeline.getTestConfusionMatrix();
+    MatrixFloat confusionMatrix = pipeline.getTestConfusionMatrix();
     cout << "ConfusionMatrix: \n";
     for(UINT i=0; i<confusionMatrix.getNumRows(); i++){
         for(UINT j=0; j<confusionMatrix.getNumCols(); j++){

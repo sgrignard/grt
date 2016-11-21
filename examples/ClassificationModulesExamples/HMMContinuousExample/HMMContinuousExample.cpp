@@ -41,8 +41,9 @@
 */
 
 //You might need to set the specific path of the GRT header relative to your project
-#include "GRT.h"
+#include <GRT/GRT.h>
 using namespace GRT;
+using namespace std;
 
 int main(int argc, const char * argv[]){
     
@@ -55,7 +56,7 @@ int main(int argc, const char * argv[]){
     }
     
     //Remove 20% of the training data to use as test data
-    TimeSeriesClassificationData testData = trainingData.partition( 80 );
+    TimeSeriesClassificationData testData = trainingData.split( 80 );
     
     //Create a new HMM instance
     HMM hmm;
@@ -110,8 +111,8 @@ int main(int argc, const char * argv[]){
         if( classLabel == hmm.getPredictedClassLabel() ) numCorrect++;
         numTests++;
         
-        VectorDouble classLikelihoods = hmm.getClassLikelihoods();
-        VectorDouble classDistances = hmm.getClassDistances();
+        VectorFloat classLikelihoods = hmm.getClassLikelihoods();
+        VectorFloat classDistances = hmm.getClassDistances();
         
         cout << "ClassLabel: " << classLabel;
         cout << " PredictedClassLabel: " << hmm.getPredictedClassLabel();

@@ -18,13 +18,15 @@ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "Classifier.h"
-namespace GRT{
+
+GRT_BEGIN_NAMESPACE
     
 Classifier::StringClassifierMap* Classifier::stringClassifierMap = NULL;
 UINT Classifier::numClassifierInstances = 0;
     
-Classifier* Classifier::createInstanceFromString(string const &classifierType){
+Classifier* Classifier::createInstanceFromString(std::string const &classifierType){
     
     StringClassifierMap::iterator iter = getMap()->find( classifierType );
     if( iter == getMap()->end() ){
@@ -33,12 +35,12 @@ Classifier* Classifier::createInstanceFromString(string const &classifierType){
     return iter->second();
 }
 Classifier* Classifier::createNewInstance() const{
-    return createInstanceFromString( classifierType );
+    return createInstanceFromString( MLBase::getClassType() );
 }
     
 Classifier* Classifier::deepCopy() const{
     
-    Classifier *newInstance = createInstanceFromString( classifierType );
+    Classifier *newInstance = createInstanceFromString( MLBase::getClassType() );
     
     if( newInstance == NULL ) return NULL;
     
@@ -53,8 +55,8 @@ const Classifier* Classifier::getClassifierPointer() const{
     return this;
 }
 
-vector< string > Classifier::getRegisteredClassifiers(){
-	vector< string > registeredClassifiers;
+Vector< std::string > Classifier::getRegisteredClassifiers(){
+	Vector< std::string > registeredClassifiers;
 	
 	StringClassifierMap::iterator iter = getMap()->begin();
 	while( iter != getMap()->end() ){
@@ -64,10 +66,10 @@ vector< string > Classifier::getRegisteredClassifiers(){
 	return registeredClassifiers;
 }
     
-Classifier::Classifier(void){
+Classifier::Classifier( const std::string &classifierType ){
     baseType = MLBase::CLASSIFIER;
+    classType = classifierType;
     classifierMode = STANDARD_CLASSIFIER_MODE;
-    classifierType = "NOT_SET";
     supportsNullRejection = false;
     useNullRejection = false;
     numInputDimensions = 0;
@@ -79,6 +81,10 @@ Classifier::Classifier(void){
     phase = 0;
     nullRejectionCoeff = 5;
     numClassifierInstances++;
+    debugLog.setProceedingText("[DEBUG" + classifierType + "]");
+    errorLog.setProceedingText("[ERROR" + classifierType + "]");
+    trainingLog.setProceedingText("[TRAINING" + classifierType + "]");
+    warningLog.setProceedingText("[WARNING" + classifierType + "]");
 }
     
 Classifier::~Classifier(void){
@@ -91,7 +97,7 @@ Classifier::~Classifier(void){
 bool Classifier::copyBaseVariables(const Classifier *classifier){
     
     if( classifier == NULL ){
-        errorLog << "copyBaseVariables(const Classifier *classifier) - Classifier is NULL!" << endl;
+        errorLog << "copyBaseVariables(const Classifier *classifier) - Classifier is NULL!" << std::endl;
         return false;
     }
     
@@ -99,7 +105,6 @@ bool Classifier::copyBaseVariables(const Classifier *classifier){
         return false;
     }
     
-    this->classifierType = classifier->classifierType;
     this->classifierMode = classifier->classifierMode;
     this->supportsNullRejection = classifier->supportsNullRejection;
     this->useNullRejection = classifier->useNullRejection;
@@ -156,8 +161,8 @@ bool Classifier::clear(){
     return true;
 }
 
-string Classifier::getClassifierType() const{
-    return classifierType; 
+std::string Classifier::getClassifierType() const{
+    return MLBase::getClassType(); 
 }
     
 bool Classifier::getSupportsNullRejection() const{
@@ -168,20 +173,20 @@ bool Classifier::getNullRejectionEnabled() const{
     return useNullRejection; 
 }
 
-double Classifier::getNullRejectionCoeff() const{ 
+Float Classifier::getNullRejectionCoeff() const{ 
     return nullRejectionCoeff; 
 }
     
-double Classifier::getMaximumLikelihood() const{ 
+Float Classifier::getMaximumLikelihood() const{ 
     if( trained ) return maxLikelihood; 
     return DEFAULT_NULL_LIKELIHOOD_VALUE; 
 }
   
-double Classifier::getPhase() const{
+Float Classifier::getPhase() const{
     return phase;
 }
     
-double Classifier::getBestDistance() const{ 
+Float Classifier::getBestDistance() const{ 
     if( trained ) return bestDistance; 
     return DEFAULT_NULL_DISTANCE_VALUE; 
 }
@@ -203,26 +208,26 @@ UINT Classifier::getPredictedClassLabel() const{
     return 0; 
 }
 
-VectorDouble Classifier::getClassLikelihoods() const{ 
+VectorFloat Classifier::getClassLikelihoods() const{ 
     if( trained ) return classLikelihoods;
-    return VectorDouble(); 
+    return VectorFloat(); 
 }
 
-VectorDouble Classifier::getClassDistances() const{ 
+VectorFloat Classifier::getClassDistances() const{ 
     if( trained ) return classDistances; 
-    return VectorDouble(); 
+    return VectorFloat(); 
 }
 
-VectorDouble Classifier::getNullRejectionThresholds() const{ 
+VectorFloat Classifier::getNullRejectionThresholds() const{ 
     if( trained ) return nullRejectionThresholds;
-    return VectorDouble(); 
+    return VectorFloat(); 
 }
 
-vector< UINT > Classifier::getClassLabels() const{ 
+Vector< UINT > Classifier::getClassLabels() const{ 
     return classLabels;
 }
     
-vector<MinMax> Classifier::getRanges() const{
+Vector<MinMax> Classifier::getRanges() const{
     return ranges;
 }
 
@@ -231,7 +236,7 @@ bool Classifier::enableNullRejection(bool useNullRejection){
     return true;
 }
 
-bool Classifier::setNullRejectionCoeff(double nullRejectionCoeff){ 
+bool Classifier::setNullRejectionCoeff(Float nullRejectionCoeff){ 
     if( nullRejectionCoeff > 0 ){ 
         this->nullRejectionCoeff = nullRejectionCoeff; 
         return true; 
@@ -239,7 +244,7 @@ bool Classifier::setNullRejectionCoeff(double nullRejectionCoeff){
     return false; 
 }
 
-bool Classifier::setNullRejectionThresholds(VectorDouble newRejectionThresholds){
+bool Classifier::setNullRejectionThresholds(VectorFloat newRejectionThresholds){
 	if( newRejectionThresholds.size() == getNumClasses() ){
 		nullRejectionThresholds = newRejectionThresholds;
 		return true;
@@ -251,46 +256,46 @@ const Classifier& Classifier::getBaseClassifier() const{
     return *this;
 }
     
-bool Classifier::saveBaseSettingsToFile(fstream &file) const{
+bool Classifier::saveBaseSettingsToFile( std::fstream &file ) const{
     
     if( !file.is_open() ){
-        errorLog << "saveBaseSettingsToFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "saveBaseSettingsToFile(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
     if( !MLBase::saveBaseSettingsToFile( file ) ) return false;
     
-    file << "UseNullRejection: " << useNullRejection << endl;
-    file << "ClassifierMode: " << classifierMode << endl;
-    file << "NullRejectionCoeff: " << nullRejectionCoeff << endl;
+    file << "UseNullRejection: " << useNullRejection << std::endl;
+    file << "ClassifierMode: " << classifierMode << std::endl;
+    file << "NullRejectionCoeff: " << nullRejectionCoeff << std::endl;
     
     if( trained ){
         
-        file << "NumClasses: " << numClasses << endl;
+        file << "NumClasses: " << numClasses << std::endl;
         
         file << "NullRejectionThresholds: ";
 		if (useNullRejection && nullRejectionThresholds.size()){
             for(UINT i=0; i<nullRejectionThresholds.size(); i++){
                 file << " " << nullRejectionThresholds[i];
             }
-            file << endl;
+            file << std::endl;
         }else{
             for(UINT i=0; i<numClasses; i++){
                 file << " " << 0.0;
             }
-            file << endl;
+            file << std::endl;
         }
         
         file << "ClassLabels: ";
         for(UINT i=0; i<classLabels.size(); i++){
             file << " " << classLabels[i];
         }
-        file << endl;
+        file << std::endl;
         
         if( useScaling ){
-            file << "Ranges: " << endl;
+            file << "Ranges: " << std::endl;
             for(UINT i=0; i<ranges.size(); i++){
-                file << ranges[i].minValue << "\t" << ranges[i].maxValue << endl;
+                file << ranges[i].minValue << "\t" << ranges[i].maxValue << std::endl;
             }
         }
     }
@@ -298,10 +303,10 @@ bool Classifier::saveBaseSettingsToFile(fstream &file) const{
     return true;
 }
 
-bool Classifier::loadBaseSettingsFromFile(fstream &file){
+bool Classifier::loadBaseSettingsFromFile( std::fstream &file ){
     
     if( !file.is_open() ){
-        errorLog << "loadBaseSettingsFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "loadBaseSettingsFromFile(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
@@ -310,12 +315,12 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
         return false;
     }
     
-    string word;
+    std::string word;
     
     //Load if the number of clusters
     file >> word;
     if( word != "UseNullRejection:" ){
-        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read UseNullRejection header!" << endl;
+        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read UseNullRejection header!" << std::endl;
         clear();
         return false;
     }
@@ -324,7 +329,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
     //Load if the classifier mode
     file >> word;
     if( word != "ClassifierMode:" ){
-        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read ClassifierMode header!" << endl;
+        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read ClassifierMode header!" << std::endl;
         clear();
         return false;
     }
@@ -333,7 +338,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
     //Load if the null rejection coeff
     file >> word;
     if( word != "NullRejectionCoeff:" ){
-        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NullRejectionCoeff header!" << endl;
+        errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NullRejectionCoeff header!" << std::endl;
         clear();
         return false;
     }
@@ -345,7 +350,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
         //Load the number of classes
         file >> word;
         if( word != "NumClasses:" ){
-            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NumClasses header!" << endl;
+            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NumClasses header!" << std::endl;
             clear();
             return false;
         }
@@ -354,7 +359,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
         //Load the null rejection thresholds
         file >> word;
         if( word != "NullRejectionThresholds:" ){
-            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NullRejectionThresholds header!" << endl;
+            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read NullRejectionThresholds header!" << std::endl;
             clear();
             return false;
         }
@@ -366,7 +371,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
         //Load the class labels
         file >> word;
         if( word != "ClassLabels:" ){
-            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read ClassLabels header!" << endl;
+            errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read ClassLabels header!" << std::endl;
             clear();
             return false;
         }
@@ -379,7 +384,7 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
             //Load if the Ranges
             file >> word;
             if( word != "Ranges:" ){
-                errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read Ranges header!" << endl;
+                errorLog << "loadBaseSettingsFromFile(fstream &file) - Failed to read Ranges header!" << std::endl;
                 clear();
                 return false;
             }
@@ -395,5 +400,5 @@ bool Classifier::loadBaseSettingsFromFile(fstream &file){
     return true;
 }
 
-} //End of namespace GRT
+GRT_END_NAMESPACE
 

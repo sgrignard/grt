@@ -29,13 +29,15 @@
  - Print out some useful info about the PCA features.
  */
 
-#include "GRT.h"
+//You might need to set the specific path of the GRT header relative to your project
+#include <GRT/GRT.h>
 using namespace GRT;
+using namespace std;
 
 int main (int argc, const char * argv[])
 {
     //Create some input data for the PCA algorithm - this data comes from the Matlab PCA example
-	MatrixDouble data(13,4);
+	MatrixFloat data(13,4);
 	
 	data[0][0] = 7; data[0][1] = 26; data[0][2] = 6; data[0][3] = 60;
 	data[1][0] = 1; data[1][1] = 29; data[1][2] = 15; data[1][3] = 52;
@@ -68,14 +70,13 @@ int main (int argc, const char * argv[])
     cout << "Number of Principal Components: " << numPrincipalComponents << endl;
 	
     //Project the original data onto the principal subspace
-	MatrixDouble prjData;
+	MatrixFloat prjData;
 	if( !pca.project( data, prjData ) ){
 		cout << "ERROR: Failed to project data!\n";
 		return EXIT_FAILURE;
 	}
     
     //Print out the pca info
-    //Print our
     pca.print("PCA Info:");
     
     //Print the projected data
@@ -85,6 +86,21 @@ int main (int argc, const char * argv[])
 			cout << prjData[i][j] << "\t";
 		}cout << endl;
 	}
+
+	//Save the model to a file
+	if( !pca.save( "pca-model.grt" ) ){
+		cout << "ERROR: Failed to save model to file!\n";
+		return EXIT_FAILURE;
+	}
+
+	//Load the model from the file
+	if( !pca.load( "pca-model.grt" ) ){
+		cout << "ERROR: Failed to load model from file!\n";
+		return EXIT_FAILURE;
+	}
+
+	//Print out the pca info again to make sure it matches
+    pca.print("PCA Info:");
     
     return EXIT_SUCCESS;
 }

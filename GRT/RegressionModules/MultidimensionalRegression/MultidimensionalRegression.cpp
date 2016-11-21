@@ -2,25 +2,26 @@
 GRT MIT License
 Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
 subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "MultidimensionalRegression.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
 
 //Register the MultidimensionalRegression module with the Classifier base class
 RegisterRegressifierModule< MultidimensionalRegression >  MultidimensionalRegression::registerModule("MultidimensionalRegression");
@@ -40,12 +41,12 @@ MultidimensionalRegression::MultidimensionalRegression(const Regressifier &regre
 
 MultidimensionalRegression::~MultidimensionalRegression(void)
 {
-	deleteAll();
+    deleteAll();
 }
-    
+
 MultidimensionalRegression& MultidimensionalRegression::operator=(const MultidimensionalRegression &rhs){
     
-	if( this != &rhs ){
+    if( this != &rhs ){
         
         //Clean up any previous setup
         deleteAll();
@@ -55,13 +56,13 @@ MultidimensionalRegression& MultidimensionalRegression::operator=(const Multidim
         
         //Deep copy the regression modules from the RHS to this instance
         if( !rhs.deepCopyRegressionModules( regressionModules ) ){
-            errorLog << "const MultidimensionalRegression &rhs - Failed to deep copy regression modules!" << endl;
+            errorLog << "const MultidimensionalRegression &rhs - Failed to deep copy regression modules!" << std::endl;
         }
         
         //Copy the base variables
         copyBaseVariables( (Regressifier*)&rhs );
-	}
-	return *this;
+    }
+    return *this;
 }
 
 bool MultidimensionalRegression::deepCopyFrom(const Regressifier *regressifier){
@@ -77,7 +78,7 @@ bool MultidimensionalRegression::deepCopyFrom(const Regressifier *regressifier){
         
         //Deep copy the regression modules from the RHS to this instance
         if( !ptr->deepCopyRegressionModules( regressionModules ) ){
-            errorLog << "deepCopyFrom(const Regressifier *regressifier) - Failed to deep copy regression modules!" << endl;
+            errorLog << "deepCopyFrom(const Regressifier *regressifier) - Failed to deep copy regression modules!" << std::endl;
             return false;
         }
         
@@ -98,12 +99,12 @@ bool MultidimensionalRegression::train_(RegressionData &trainingData){
     deleteRegressionModules();
     
     if( !getIsRegressionModuleSet() ){
-        errorLog << "train_(RegressionData &trainingData) - The regression module has not been set!" << endl;
+        errorLog << "train_(RegressionData &trainingData) - The regression module has not been set!" << std::endl;
         return false;
     }
     
     if( M == 0 ){
-        errorLog << "train_(RegressionData &trainingData) - Training data has zero samples!" << endl;
+        errorLog << "train_(RegressionData &trainingData) - Training data has zero samples!" << std::endl;
         return false;
     }
     
@@ -113,16 +114,16 @@ bool MultidimensionalRegression::train_(RegressionData &trainingData){
     targetVectorRanges.clear();
     
     //Scale the training and validation data, if needed
-	if( useScaling ){
-		//Find the ranges for the input data
+    if( useScaling ){
+        //Find the ranges for the input data
         inputVectorRanges = trainingData.getInputRanges();
         
         //Find the ranges for the target data
-		targetVectorRanges = trainingData.getTargetRanges();
+        targetVectorRanges = trainingData.getTargetRanges();
         
-		//Scale the training data
-		trainingData.scale(inputVectorRanges,targetVectorRanges,0.0,1.0);
-	}
+        //Scale the training data
+        trainingData.scale(inputVectorRanges,targetVectorRanges,0.0,1.0);
+    }
     
     //Setup the regression modules
     regressionModules.resize( K, NULL );
@@ -133,7 +134,7 @@ bool MultidimensionalRegression::train_(RegressionData &trainingData){
     for(UINT k=0; k<K; k++){
         regressionModules[k] = regressifier->deepCopy();
         if( regressionModules[k] == NULL ){
-            errorLog << "train(LabelledRegressionData &trainingData) - Failed to deep copy module " << k << endl;
+            errorLog << "train(LabelledRegressionData &trainingData) - Failed to deep copy module " << k << std::endl;
             return false;
         }
     }
@@ -141,21 +142,21 @@ bool MultidimensionalRegression::train_(RegressionData &trainingData){
     //Train each regression module
     for(UINT k=0; k<K; k++){
         
-        trainingLog << "Training regression module: " << k << endl;
+        trainingLog << "Training regression module: " << k << std::endl;
         
         //We need to create a 1 dimensional training dataset for the k'th target dimension
         RegressionData data;
         data.setInputAndTargetDimensions(N, 1);
         
         for(UINT i=0; i<M; i++){
-            if( !data.addSample(trainingData[i].getInputVector(), VectorDouble(1,trainingData[i].getTargetVector()[k]) ) ){
-                errorLog << "train_(RegressionData &trainingData) - Failed to add sample to dataset for regression module " << k << endl;
-                return false;
+            if( !data.addSample(trainingData[i].getInputVector(), VectorFloat(1,trainingData[i].getTargetVector()[k]) ) ){
+                errorLog << "train_(RegressionData &trainingData) - Failed to add sample to dataset for regression module " << k << std::endl;
+                    return false;
             }
         }
         
         if( !regressionModules[k]->train( data ) ){
-            errorLog << "train_(RegressionData &trainingData) - Failed to train regression module " << k << endl;
+            errorLog << "train_(RegressionData &trainingData) - Failed to train regression module " << k << std::endl;
             return false;
         }
     }
@@ -166,83 +167,83 @@ bool MultidimensionalRegression::train_(RegressionData &trainingData){
     return trained;
 }
 
-bool MultidimensionalRegression::predict_(VectorDouble &inputVector){
+bool MultidimensionalRegression::predict_(VectorFloat &inputVector){
     
     if( !trained ){
-        errorLog << "predict_(VectorDouble &inputVector) - Model Not Trained!" << endl;
+        errorLog << "predict_(VectorFloat &inputVector) - Model Not Trained!" << std::endl;
         return false;
     }
     
     if( !trained ) return false;
     
-	if( inputVector.size() != numInputDimensions ){
-        errorLog << "predict_(VectorDouble &inputVector) - The size of the input vector (" << int( inputVector.size() ) << ") does not match the num features in the model (" << numInputDimensions << endl;
-		return false;
-	}
+    if( inputVector.getSize() != numInputDimensions ){
+        errorLog << "predict_(VectorFloat &inputVector) - The size of the input Vector (" << inputVector.getSize() << ") does not match the num features in the model (" << numInputDimensions << std::endl;
+        return false;
+    }
     
     if( useScaling ){
         for(UINT n=0; n<numInputDimensions; n++){
-            inputVector[n] = scale(inputVector[n], inputVectorRanges[n].minValue, inputVectorRanges[n].maxValue, 0, 1);
+            inputVector[n] = grt_scale(inputVector[n], inputVectorRanges[n].minValue, inputVectorRanges[n].maxValue, 0.0, 1.0);
         }
     }
     
     for(UINT n=0; n<numOutputDimensions; n++){
         if( !regressionModules[ n ]->predict( inputVector ) ){
-            errorLog << "predict_(VectorDouble &inputVector) - Failed to predict for regression module " << n << endl;
-        }
+            errorLog << "predict_(VectorFloat &inputVector) - Failed to predict for regression module " << n << std::endl;
+            }
         regressionData[ n ] = regressionModules[ n ]->getRegressionData()[0];
     }
     
     if( useScaling ){
         for(UINT n=0; n<numOutputDimensions; n++){
-            regressionData[n] = scale(regressionData[n], 0, 1, targetVectorRanges[n].minValue, targetVectorRanges[n].maxValue);
+            regressionData[n] = grt_scale(regressionData[n], 0.0, 1.0, targetVectorRanges[n].minValue, targetVectorRanges[n].maxValue);
         }
     }
     
     return true;
 }
-    
-bool MultidimensionalRegression::saveModelToFile(fstream &file) const {
+
+bool MultidimensionalRegression::save( std::fstream &file ) const {
     
     if(!file.is_open())
-	{
-        errorLog << "saveModelToFile(fstream &file) - The file is not open!" << endl;
-		return false;
-	}
+    {
+        errorLog << "save(fstream &file) - The file is not open!" << std::endl;
+        return false;
+    }
     
-	//Write the header info
+    //Write the header info
     file << "GRT_MULTIDIMENSIONAL_REGRESSION_MODEL_FILE_V2.0\n";
     
     //Write the regressifier settings to the file
     if( !Regressifier::saveBaseSettingsToFile(file) ){
-        errorLog <<"saveModelToFile(fstream &file) - Failed to save Regressifier base settings to file!" << endl;
-		return false;
+        errorLog <<"save(fstream &file) - Failed to save Regressifier base settings to file!" << std::endl;
+        return false;
     }
     
     if( !getIsRegressionModuleSet() ){
-        file << "Regressifier: " << "NOT_SET" << endl;
+        file << "Regressifier: " << "NOT_SET" << std::endl;
         return true;
     }
     
-    //Save the regression 
-    file << "Regressifier: " << regressifier->getRegressifierType() << endl;
+    //Save the regression
+    file << "Regressifier: " << regressifier->getRegressifierType() << std::endl;
     
-    if( !regressifier->saveModelToFile( file ) ){
-        errorLog << "saveModelToFile(fstream &file) - Failed to save regressifier!" << endl;
-		return false;
+    if( !regressifier->save( file ) ){
+        errorLog << "save(fstream &file) - Failed to save regressifier!" << std::endl;
+        return false;
     }
     
     for(UINT i=0; i<regressionModules.size(); i++){
-        if( !regressionModules[i]->saveModelToFile( file ) ){
-            errorLog << "saveModelToFile(fstream &file) - Failed to save regression module " << i << endl;
+        if( !regressionModules[i]->save( file ) ){
+            errorLog << "save(fstream &file) - Failed to save regression module " << i << std::endl;
             return false;
         }
     }
-     
+    
     return true;
 }
-    
-bool MultidimensionalRegression::loadModelFromFile(fstream &file){
+
+bool MultidimensionalRegression::load( std::fstream &file ){
     
     trained = false;
     numInputDimensions = 0;
@@ -250,7 +251,7 @@ bool MultidimensionalRegression::loadModelFromFile(fstream &file){
     
     if(!file.is_open())
     {
-        errorLog << "loadModelFromFile(string filename) - Could not open file to load model" << endl;
+        errorLog << "load(string filename) - Could not open file to load model" << std::endl;
         return false;
     }
     
@@ -265,24 +266,24 @@ bool MultidimensionalRegression::loadModelFromFile(fstream &file){
     }
     
     if( word != "GRT_MULTIDIMENSIONAL_REGRESSION_MODEL_FILE_V2.0" ){
-        errorLog << "loadModelFromFile( fstream &file ) - Could not find Model File Header" << endl;
+        errorLog << "load( fstream &file ) - Could not find Model File Header" << std::endl;
         return false;
     }
     
     //Load the regressifier settings from the file
     if( !Regressifier::loadBaseSettingsFromFile(file) ){
-        errorLog <<"loadModelFromFile( fstream &file ) - Failed to save Regressifier base settings to file!" << endl;
-		return false;
+        errorLog <<"load( fstream &file ) - Failed to save Regressifier base settings to file!" << std::endl;
+        return false;
     }
     
     file >> word;
     if( word != "Regressifier:" ){
-        errorLog << "loadModelFromFile(string filename) - Failed to find Regressifier!" << endl;
+        errorLog << "load(string filename) - Failed to find Regressifier!" << std::endl;
         return false;
     }
     
     //Load the regressifier type
-    string regressifierType;
+    std::string regressifierType;
     file >> regressifierType;
     if( regressifierType == "NOT_SET" ){
         return true;
@@ -292,12 +293,12 @@ bool MultidimensionalRegression::loadModelFromFile(fstream &file){
     regressifier = createInstanceFromString( regressifierType );
     
     if( regressifier == NULL ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to create regression instance from string!" << endl;
+        errorLog << "load(fstream &file) - Failed to create regression instance from string!" << std::endl;
         return false;
     }
     
-    if( !regressifier->loadModelFromFile( file ) ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to load regressifier!" << endl;
+    if( !regressifier->load( file ) ){
+        errorLog <<"load(fstream &file) - Failed to load regressifier!" << std::endl;
         return false;
     }
     
@@ -305,10 +306,10 @@ bool MultidimensionalRegression::loadModelFromFile(fstream &file){
         //Initialize the regression modules
         regressionModules.resize(numOutputDimensions, NULL);
         
-        for(UINT i=0; i<regressionModules.size(); i++){
+        for(UINT i=0; i<regressionModules.getSize(); i++){
             regressionModules[i] = createInstanceFromString( regressifierType );
-            if( !regressionModules[i]->loadModelFromFile( file ) ){
-                errorLog << "loadModelFromFile(fstream &file) - Failed to load regression module " << i << endl;
+            if( !regressionModules[i]->load( file ) ){
+                errorLog << "load(fstream &file) - Failed to load regression module " << i << std::endl;
                 return false;
             }
         }
@@ -316,15 +317,15 @@ bool MultidimensionalRegression::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
+
 bool MultidimensionalRegression::getIsRegressionModuleSet() const {
     return regressifier != NULL ? true : false;
 }
-    
+
 Regressifier* MultidimensionalRegression::getRegressifier() const {
     return regressifier;
 }
-    
+
 bool MultidimensionalRegression::setRegressionModule( const Regressifier &regressifier ){
     
     if( !deleteRegressionModules() ){
@@ -342,33 +343,33 @@ bool MultidimensionalRegression::setRegressionModule( const Regressifier &regres
     return true;
 }
 
-bool MultidimensionalRegression::deepCopyRegressionModules( vector< Regressifier* > &newModules ) const{
-	
-	const UINT N = (UINT)regressionModules.size();
-	
-	//The newModules vector should be empty
-	if( newModules.size() > 0 ) return false;
-	
-	//Return true if there are no modules to copy
-	if( N == 0 ) return true;
-	
-	//Perform the copy
-	newModules.resize( N );
-	
-	for(UINT i=0; i<N; i++){
+bool MultidimensionalRegression::deepCopyRegressionModules( Vector< Regressifier* > &newModules ) const{
+    
+    const UINT N = regressionModules.getSize();
+    
+    //The newModules Vector should be empty
+    if( newModules.size() > 0 ) return false;
+    
+    //Return true if there are no modules to copy
+    if( N == 0 ) return true;
+    
+    //Perform the copy
+    newModules.resize( N );
+    
+    for(UINT i=0; i<N; i++){
         //Deep copy the i'th module into the i'th regressionModules
         newModules[i] = regressionModules[i]->deepCopy();
-		if( newModules[i] == NULL ){
-			for(UINT j=0; j<i; j++){
-				delete newModules[j];
-				newModules[j] = NULL;
-			}
-			newModules.clear();
-			return false;
-		}
-	}
-	
-	return true;
+        if( newModules[i] == NULL ){
+            for(UINT j=0; j<i; j++){
+                delete newModules[j];
+                newModules[j] = NULL;
+            }
+            newModules.clear();
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 bool MultidimensionalRegression::deleteAll(){
@@ -378,42 +379,42 @@ bool MultidimensionalRegression::deleteAll(){
     }
     return deleteRegressionModules();
 }
-    
+
 bool MultidimensionalRegression::deleteRegressionModules(){
-	
-	const UINT N = (UINT)regressionModules.size();
-	
-	if( N == 0 ) return true;
-	
-	for(UINT i=0; i<N; i++){
-		delete regressionModules[i];
-		regressionModules[i] = NULL;
-	}
-	regressionModules.clear();
-	return true;
+    
+    const UINT N = regressionModules.getSize();
+    
+    if( N == 0 ) return true;
+    
+    for(UINT i=0; i<N; i++){
+        delete regressionModules[i];
+        regressionModules[i] = NULL;
+    }
+    regressionModules.clear();
+    return true;
 }
+
+bool MultidimensionalRegression::loadLegacyModelFromFile( std::fstream &file ){
     
-bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
-    
-    string word;
+    std::string word;
     
     file >> word;
     if(word != "NumFeatures:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find NumFeatures!" << endl;
+        errorLog << "load(string filename) - Could not find NumFeatures!" << std::endl;
         return false;
     }
     file >> numInputDimensions;
     
     file >> word;
     if(word != "NumOutputDimensions:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find NumOutputDimensions!" << endl;
+        errorLog << "load(string filename) - Could not find NumOutputDimensions!" << std::endl;
         return false;
     }
     file >> numOutputDimensions;
     
     file >> word;
     if(word != "UseScaling:"){
-        errorLog << "loadModelFromFile(string filename) - Could not find UseScaling!" << endl;
+        errorLog << "load(string filename) - Could not find UseScaling!" << std::endl;
         return false;
     }
     file >> useScaling;
@@ -428,10 +429,10 @@ bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
         file >> word;
         if(word != "InputVectorRanges:"){
             file.close();
-            errorLog << "loadModelFromFile(string filename) - Failed to find InputVectorRanges!" << endl;
+            errorLog << "load(string filename) - Failed to find InputVectorRanges!" << std::endl;
             return false;
         }
-        for(UINT j=0; j<inputVectorRanges.size(); j++){
+        for(UINT j=0; j<inputVectorRanges.getSize(); j++){
             file >> inputVectorRanges[j].minValue;
             file >> inputVectorRanges[j].maxValue;
         }
@@ -439,10 +440,10 @@ bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
         file >> word;
         if(word != "OutputVectorRanges:"){
             file.close();
-            errorLog << "loadModelFromFile(string filename) - Failed to find OutputVectorRanges!" << endl;
+            errorLog << "load(string filename) - Failed to find OutputVectorRanges!" << std::endl;
             return false;
         }
-        for(UINT j=0; j<targetVectorRanges.size(); j++){
+        for(UINT j=0; j<targetVectorRanges.getSize(); j++){
             file >> targetVectorRanges[j].minValue;
             file >> targetVectorRanges[j].maxValue;
         }
@@ -450,12 +451,12 @@ bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
     
     file >> word;
     if( word != "Regressifier:" ){
-        errorLog << "loadModelFromFile(string filename) - Failed to find Regressifier!" << endl;
+        errorLog << "load(string filename) - Failed to find Regressifier!" << std::endl;
         return false;
     }
     
     //Load the regressifier type
-    string regressifierType;
+    std::string regressifierType;
     file >> regressifierType;
     if( regressifierType == "NOT_SET" ){
         return true;
@@ -465,12 +466,12 @@ bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
     regressifier = createInstanceFromString( regressifierType );
     
     if( regressifier == NULL ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to create regression instance from string!" << endl;
+        errorLog << "load(fstream &file) - Failed to create regression instance from string!" << std::endl;
         return false;
     }
     
-    if( !regressifier->loadModelFromFile( file ) ){
-        errorLog <<"loadModelFromFile(fstream &file) - Failed to load regressifier!" << endl;
+    if( !regressifier->load( file ) ){
+        errorLog <<"load(fstream &file) - Failed to load regressifier!" << std::endl;
         return false;
     }
     
@@ -478,23 +479,22 @@ bool MultidimensionalRegression::loadLegacyModelFromFile( fstream &file ){
         //Initialize the regression modules
         regressionModules.resize(numOutputDimensions, NULL);
         
-        for(UINT i=0; i<regressionModules.size(); i++){
+        for(UINT i=0; i<regressionModules.getSize(); i++){
             regressionModules[i] = createInstanceFromString( regressifierType );
-            if( !regressionModules[i]->loadModelFromFile( file ) ){
-                errorLog << "loadModelFromFile(fstream &file) - Failed to load regression module " << i << endl;
+            if( !regressionModules[i]->load( file ) ){
+                errorLog << "load(fstream &file) - Failed to load regression module " << i << std::endl;
                 return false;
             }
         }
         
-        //Resize the regression data vector
+        //Resize the regression data Vector
         regressionData.resize(numOutputDimensions,0);
         
         //Flag that the model has been trained
         trained = true;
     }
-
+    
     return true;
 }
 
-} //End of namespace GRT
-
+GRT_END_NAMESPACE

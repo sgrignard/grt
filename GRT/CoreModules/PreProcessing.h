@@ -33,15 +33,16 @@
 
 #include "MLBase.h"
 
-namespace GRT{
+GRT_BEGIN_NAMESPACE
 
-class PreProcessing : public MLBase
+class GRT_API PreProcessing : public MLBase
 {
 public:
     /**
      Default Constructor
+     @param id: the id of the parent PreProcessing module (e.g., LowPassFilter)
      */
-	PreProcessing(void);
+	PreProcessing( const std::string &id = "" );
 	
     /**
      Default Destructor
@@ -51,7 +52,7 @@ public:
     /**
      This is the base deepCopyFrom function for the PreProcessing modules. This function should be overwritten by the derived class.
      
-     @param const PreProcessing *preProcessing: a pointer to the PreProcessing base class, this should be pointing to another instance of a matching derived class
+     @param preProcessing: a pointer to the PreProcessing base class, this should be pointing to another instance of a matching derived class
      @return returns true if the deep copy was successfull, false otherwise (the PreProcessing base class will always return flase)
      */
     virtual bool deepCopyFrom(const PreProcessing *rhs){ return false; }
@@ -59,7 +60,7 @@ public:
     /**
      This copies the PreProcessing variables from preProcessing to the instance that calls the function.
      
-     @param const PreProcessing *preProcessing: a pointer to a pre processing module from which the values will be copied
+     @param preProcessing: a pointer to a pre processing module from which the values will be copied
      @return returns true if the copy was successfull, false otherwise
      */
     bool copyBaseVariables(const PreProcessing *preProcessingModule);
@@ -67,10 +68,10 @@ public:
     /**
      This is the main processing interface for all the pre processing modules and should be overwritten by the inheriting class.
      
-     @param const VectorDouble &inputVector: a vector containing the data that should be processed
+     @param inputVector: a vector containing the data that should be processed
      @return returns true if the pre processing was successfull, false otherwise
      */
-    virtual bool process(const VectorDouble &inputVector){ return false; }
+    virtual bool process(const VectorFloat &inputVector){ return false; }
     
     /**
      This is the main reset interface for all the GRT preprocessing modules. This should be overwritten by the derived class.
@@ -86,47 +87,11 @@ public:
      @return returns true if the derived class was cleared succesfully, false otherwise
      */
     virtual bool clear();
-    
-    /**
-     This saves the preprocessing settings to a file.
-     This function should be overwritten by the derived class.
-     
-     @param const string filename: the filename to save the settings to
-     @return returns true if the settings were saved successfully, false otherwise
-     */
-    virtual bool saveModelToFile(string filename) const;
-    
-    /**
-     This saves the preprocessing settings to a file.
-     This function should be overwritten by the derived class.
-     
-     @param fstream &file: a reference to the file to save the settings to
-     @return returns true if the settings were saved successfully, false otherwise
-     */
-    virtual bool loadModelFromFile(string filename);
-    
-    /**
-     This saves the preprocessing settings to a file.
-     This function should be overwritten by the derived class.
-     
-     @param fstream &file: a reference to the file to save the settings to
-     @return returns true if the settings were saved successfully, false otherwise (the base class always returns false)
-     */
-    virtual bool saveModelToFile(fstream &file) const{ return false; }
-    
-    /**
-     This loads the preprocessing settings from a file.
-     This function should be overwritten by the derived class.
-     
-     @param fstream &file: a reference to the file to load the settings from
-     @return returns true if the settings were loaded successfully, false otherwise (the base class always returns false)
-     */
-    virtual bool loadModelFromFile(fstream &file){ return false; }
 	
     /**
      @return returns the pre processing type as a string, e.g. LowPassFilter
      */
-	string getPreProcessingType() const;
+	std::string getPreProcessingType() const;
     
     /**
      Returns the size of the input vector expected by the pre processing module.
@@ -150,22 +115,22 @@ public:
     bool getInitialized() const;
 
     /**
-     @return returns a VectorDouble containing the most recent processed data
+     @return returns a VectorFloat containing the most recent processed data
      */
-	VectorDouble getProcessedData() const;
+	VectorFloat getProcessedData() const;
     
     /**
      This typedef defines a map between a string and a PreProcessing pointer.
      */
-	typedef std::map< string, PreProcessing*(*)() > StringPreProcessingMap;
+	typedef std::map< std::string, PreProcessing*(*)() > StringPreProcessingMap;
     
     /**
      This static function will dynamically create a new PreProcessing instance from a string.
      
-     @param string const &preProcessingType: the name of the PreProcessing class you want to dynamically create
+     @param preProcessingType: the name of the PreProcessing class you want to dynamically create
      @return a pointer to the new PreProcessing instance that was created
      */
-    static PreProcessing* createInstanceFromString(string const &preProcessingType);
+    static PreProcessing* createInstanceFromString(std::string const &preProcessingType);
     
     /**
      This static function will dynamically create a new PreProcessing instance based on the type of this instance
@@ -186,18 +151,18 @@ protected:
      
      @return returns true if the base settings were saved, false otherwise
      */
-    bool savePreProcessingSettingsToFile(fstream &file) const;
+    bool savePreProcessingSettingsToFile(std::fstream &file) const;
     
     /**
      Loads the core preprocessing settings from a file.
      
      @return returns true if the base settings were loaded, false otherwise
      */
-    bool loadPreProcessingSettingsFromFile(fstream &file);
+    bool loadPreProcessingSettingsFromFile(std::fstream &file);
 
-    string preProcessingType;
+    std::string preProcessingType;
     bool initialized;
-    VectorDouble processedData;
+    VectorFloat processedData;
 
 	static StringPreProcessingMap *getMap() {
         if( !stringPreProcessingMap ){ stringPreProcessingMap = new StringPreProcessingMap; } 
@@ -215,12 +180,12 @@ template< typename T >  PreProcessing *newPreProcessingModuleInstance() { return
 template< typename T > 
 class RegisterPreProcessingModule : PreProcessing { 
 public:
-    RegisterPreProcessingModule(string const &newPreProcessingModuleName) { 
-        getMap()->insert( std::pair<string, PreProcessing*(*)()>(newPreProcessingModuleName, &newPreProcessingModuleInstance< T > ) );
+    RegisterPreProcessingModule( const std::string &newPreProcessingModuleName ) { 
+        getMap()->insert( std::pair< std::string, PreProcessing*(*)() >(newPreProcessingModuleName, &newPreProcessingModuleInstance< T > ) );
     }
 };
 
-} //End of namespace GRT
+GRT_END_NAMESPACE
 
 #endif // GRT_POST_PROCESSING_HEADER
 

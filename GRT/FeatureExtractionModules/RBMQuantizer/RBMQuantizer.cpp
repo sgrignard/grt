@@ -1,30 +1,31 @@
 /*
- GRT MIT License
- Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
- 
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
- and associated documentation files (the "Software"), to deal in the Software without restriction, 
- including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
- and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
- subject to the following conditions:
- 
- The above copyright notice and this permission notice shall be included in all copies or substantial 
- portions of the Software.
- 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
- LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
- IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
- WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
- SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
+GRT MIT License
+Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial
+portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
+#define GRT_DLL_EXPORTS
 #include "RBMQuantizer.h"
 
-namespace GRT{
-    
+GRT_BEGIN_NAMESPACE
+
 //Register your module with the FeatureExtraction base class
 RegisterFeatureExtractionModule< RBMQuantizer > RBMQuantizer::registerModule("RBMQuantizer");
-    
+
 RBMQuantizer::RBMQuantizer(const UINT numClusters){
     
     this->numClusters = numClusters;
@@ -34,7 +35,7 @@ RBMQuantizer::RBMQuantizer(const UINT numClusters){
     errorLog.setProceedingText("[ERROR RBMQuantizer]");
     warningLog.setProceedingText("[WARNING RBMQuantizer]");
 }
-    
+
 RBMQuantizer::RBMQuantizer(const RBMQuantizer &rhs){
     
     classType = "RBMQuantizer";
@@ -49,7 +50,7 @@ RBMQuantizer::RBMQuantizer(const RBMQuantizer &rhs){
 
 RBMQuantizer::~RBMQuantizer(){
 }
-    
+
 RBMQuantizer& RBMQuantizer::operator=(const RBMQuantizer &rhs){
     if(this!=&rhs){
         this->numClusters = rhs.numClusters;
@@ -61,7 +62,7 @@ RBMQuantizer& RBMQuantizer::operator=(const RBMQuantizer &rhs){
     }
     return *this;
 }
-    
+
 bool RBMQuantizer::deepCopyFrom(const FeatureExtraction *featureExtraction){
     
     if( featureExtraction == NULL ) return false;
@@ -74,16 +75,16 @@ bool RBMQuantizer::deepCopyFrom(const FeatureExtraction *featureExtraction){
         return true;
     }
     
-    errorLog << "clone(FeatureExtraction *featureExtraction) -  FeatureExtraction Types Do Not Match!" << endl;
+    errorLog << "clone(FeatureExtraction *featureExtraction) -  FeatureExtraction Types Do Not Match!" << std::endl;
     
     return false;
 }
+
+bool RBMQuantizer::computeFeatures(const VectorFloat &inputVector){
     
-bool RBMQuantizer::computeFeatures(const VectorDouble &inputVector){
+    //Run the quantize algorithm
+    quantize( inputVector );
     
-	//Run the quantize algorithm
-	quantize( inputVector );
-	
     return true;
 }
 
@@ -99,7 +100,7 @@ bool RBMQuantizer::reset(){
     
     return true;
 }
-    
+
 bool RBMQuantizer::clear(){
     
     //Clear the base class
@@ -107,61 +108,32 @@ bool RBMQuantizer::clear(){
     
     rbm.clear();
     quantizationDistances.clear();
-
-    return true;
-}
-    
-bool RBMQuantizer::saveModelToFile(string filename) const{
-    
-    std::fstream file;
-    file.open(filename.c_str(), std::ios::out);
-    
-    if( !saveModelToFile( file ) ){
-        return false;
-    }
-    
-    file.close();
     
     return true;
 }
 
-bool RBMQuantizer::loadModelFromFile(string filename){
-    
-    std::fstream file;
-    file.open(filename.c_str(), std::ios::in);
-    
-    if( !loadModelFromFile( file ) ){
-        return false;
-    }
-    
-    //Close the file
-    file.close();
-    
-    return true;
-}
-
-bool RBMQuantizer::saveModelToFile(fstream &file) const{
+bool RBMQuantizer::save( std::fstream &file ) const{
     
     if( !file.is_open() ){
-        errorLog << "saveModelToFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "save(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
     //Write the header
-    file << "RBM_QUANTIZER_FILE_V1.0" << endl;
-	
+    file << "RBM_QUANTIZER_FILE_V1.0" << std::endl;
+    
     //Save the base feature extraction settings to the file
     if( !saveFeatureExtractionSettingsToFile( file ) ){
-        errorLog << "saveFeatureExtractionSettingsToFile(fstream &file) - Failed to save base feature extraction settings to file!" << endl;
+        errorLog << "saveFeatureExtractionSettingsToFile(fstream &file) - Failed to save base feature extraction settings to file!" << std::endl;
         return false;
     }
     
-    file << "QuantizerTrained: " << trained << endl;
-    file << "NumClusters: " << numClusters << endl;
+    file << "QuantizerTrained: " << trained << std::endl;
+    file << "NumClusters: " << numClusters << std::endl;
     
     if( trained ){
-        if( !rbm.saveModelToFile( file ) ){
-            errorLog << "saveModelToFile(fstream &file) - Failed to save RBM settings to file!" << endl;
+        if( !rbm.save( file ) ){
+            errorLog << "save(fstream &file) - Failed to save RBM settings to file!" << std::endl;
             return false;
         }
     }
@@ -169,48 +141,48 @@ bool RBMQuantizer::saveModelToFile(fstream &file) const{
     return true;
 }
 
-bool RBMQuantizer::loadModelFromFile(fstream &file){
+bool RBMQuantizer::load( std::fstream &file ){
     
     //Clear any previous model
     clear();
     
     if( !file.is_open() ){
-        errorLog << "loadModelFromFile(fstream &file) - The file is not open!" << endl;
+        errorLog << "load(fstream &file) - The file is not open!" << std::endl;
         return false;
     }
     
-    string word;
+    std::string word;
     
     //First, you should read and validate the header
     file >> word;
     if( word != "RBM_QUANTIZER_FILE_V1.0" ){
-        errorLog << "loadModelFromFile(fstream &file) - Invalid file format!" << endl;
+        errorLog << "load(fstream &file) - Invalid file format!" << std::endl;
         return false;
     }
     
     //Second, you should load the base feature extraction settings to the file
     if( !loadFeatureExtractionSettingsFromFile( file ) ){
-        errorLog << "loadFeatureExtractionSettingsFromFile(fstream &file) - Failed to load base feature extraction settings from file!" << endl;
+        errorLog << "loadFeatureExtractionSettingsFromFile(fstream &file) - Failed to load base feature extraction settings from file!" << std::endl;
         return false;
     }
     
     file >> word;
     if( word != "QuantizerTrained:" ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to load QuantizerTrained!" << endl;
+        errorLog << "load(fstream &file) - Failed to load QuantizerTrained!" << std::endl;
         return false;
     }
     file >> trained;
     
     file >> word;
     if( word != "NumClusters:" ){
-        errorLog << "loadModelFromFile(fstream &file) - Failed to load NumClusters!" << endl;
+        errorLog << "load(fstream &file) - Failed to load NumClusters!" << std::endl;
         return false;
     }
     file >> numClusters;
     
     if( trained ){
-        if( !rbm.loadModelFromFile( file ) ){
-            errorLog << "loadModelFromFile(fstream &file) - Failed to load SelfOrganizingMap settings from file!" << endl;
+        if( !rbm.load( file ) ){
+            errorLog << "load(fstream &file) - Failed to load SelfOrganizingMap settings from file!" << std::endl;
             return false;
         }
         initialized = true;
@@ -220,34 +192,34 @@ bool RBMQuantizer::loadModelFromFile(fstream &file){
     
     return true;
 }
-    
+
 bool RBMQuantizer::train_(ClassificationData &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train_( data );
 }
-    
+
 bool RBMQuantizer::train_(TimeSeriesClassificationData &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train_( data );
 }
-   
-bool RBMQuantizer::train_(TimeSeriesClassificationDataStream &trainingData){
-    MatrixDouble data = trainingData.getDataAsMatrixDouble();
+
+bool RBMQuantizer::train_(ClassificationDataStream &trainingData){
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train_( data );
 }
 
 bool RBMQuantizer::train_(UnlabelledData &trainingData){
-	MatrixDouble data = trainingData.getDataAsMatrixDouble();
+    MatrixFloat data = trainingData.getDataAsMatrixFloat();
     return train_( data );
 }
-    
-bool RBMQuantizer::train_(MatrixDouble &trainingData){
+
+bool RBMQuantizer::train_(MatrixFloat &trainingData){
     
     //Clear any previous model
     clear();
     
     if( trainingData.getNumRows() == 0 ){
-        errorLog << "train_(MatrixDouble &trainingData) - Failed to train quantizer, the training data is empty!" << endl;
+        errorLog << "train_(MatrixFloat &trainingData) - Failed to train quantizer, the training data is empty!" << std::endl;
         return false;
     }
     
@@ -259,7 +231,7 @@ bool RBMQuantizer::train_(MatrixDouble &trainingData){
     rbm.setMinChange( minChange );
     
     if( !rbm.train_( trainingData ) ){
-        errorLog << "train_(MatrixDouble &trainingData) - Failed to train quantizer!" << endl;
+        errorLog << "train_(MatrixFloat &trainingData) - Failed to train quantizer!" << std::endl;
         return false;
     }
     
@@ -270,28 +242,28 @@ bool RBMQuantizer::train_(MatrixDouble &trainingData){
     numOutputDimensions = 1; //This is always 1 for the quantizer
     featureVector.resize(numOutputDimensions,0);
     quantizationDistances.resize(numClusters,0);
-
+    
     return true;
 }
 
-UINT RBMQuantizer::quantize(const double inputValue){
-	return quantize( VectorDouble(1,inputValue) );
+UINT RBMQuantizer::quantize(const Float inputValue){
+    return quantize( VectorFloat(1,inputValue) );
 }
 
-UINT RBMQuantizer::quantize(const VectorDouble &inputVector){
-	
+UINT RBMQuantizer::quantize(const VectorFloat &inputVector){
+    
     if( !trained ){
-        errorLog << "quantize(const VectorDouble &inputVector) - The quantizer model has not been trained!" << endl;
+        errorLog << "quantize(const VectorFloat &inputVector) - The quantizer model has not been trained!" << std::endl;
         return 0;
     }
-
-    if( inputVector.size() != numInputDimensions ){
-        errorLog << "quantize(const VectorDouble &inputVector) - The size of the inputVector (" << inputVector.size() << ") does not match that of the filter (" << numInputDimensions << ")!" << endl;
+    
+    if( inputVector.getSize() != numInputDimensions ){
+        errorLog << "quantize(const VectorFloat &inputVector) - The size of the inputVector (" << inputVector.getSize() << ") does not match that of the filter (" << numInputDimensions << ")!" << std::endl;
         return 0;
     }
-	
+    
     if( !rbm.predict( inputVector ) ){
-        errorLog << "quantize(const VectorDouble &inputVector) - Failed to quantize input!" << endl;
+        errorLog << "quantize(const VectorFloat &inputVector) - Failed to quantize input!" << std::endl;
         return 0;
     }
     
@@ -299,7 +271,7 @@ UINT RBMQuantizer::quantize(const VectorDouble &inputVector){
     
     //Search for the neuron with the maximum output
     UINT quantizedValue = 0;
-    double maxValue = 0;
+    Float maxValue = 0;
     for(UINT k=0; k<numClusters; k++){
         if( quantizationDistances[k] > maxValue ){
             maxValue = quantizationDistances[k];
@@ -309,14 +281,14 @@ UINT RBMQuantizer::quantize(const VectorDouble &inputVector){
     
     featureVector[0] = quantizedValue;
     featureDataReady = true;
-	
-	return quantizedValue;
-}
     
+    return quantizedValue;
+}
+
 bool RBMQuantizer::getQuantizerTrained() const {
     return trained;
 }
-    
+
 UINT RBMQuantizer::getNumClusters() const{
     return numClusters;
 }
@@ -325,18 +297,18 @@ UINT RBMQuantizer::getQuantizedValue() const {
     return (trained ? static_cast<UINT>(featureVector[0]) : 0);
 }
 
-VectorDouble RBMQuantizer::getQuantizationDistances() const{
+VectorFloat RBMQuantizer::getQuantizationDistances() const{
     return quantizationDistances;
 }
 
 BernoulliRBM RBMQuantizer::getBernoulliRBM() const{
     return rbm;
 }
-    
+
 bool RBMQuantizer::setNumClusters(const UINT numClusters){
     clear();
     this->numClusters = numClusters;
     return true;
 }
-    
-}//End of namespace GRT
+
+GRT_END_NAMESPACE

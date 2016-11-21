@@ -2,27 +2,26 @@
 GRT MIT License
 Copyright (c) <2012> <Nicholas Gillian, Media Lab, MIT>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software 
-and associated documentation files (the "Software"), to deal in the Software without restriction, 
-including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense,
+and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so,
 subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all copies or substantial 
+The above copyright notice and this permission notice shall be included in all copies or substantial
 portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+#define GRT_DLL_EXPORTS
 #include "LinearRegression.h"
 
-using namespace std;
-
-namespace GRT{
+GRT_BEGIN_NAMESPACE
 
 //Register the LinearRegression module with the Classifier base class
 RegisterRegressifierModule< LinearRegression >  LinearRegression::registerModule("LinearRegression");
@@ -44,16 +43,16 @@ LinearRegression::LinearRegression(bool useScaling)
 LinearRegression::~LinearRegression(void)
 {
 }
-    
+
 LinearRegression& LinearRegression::operator=(const LinearRegression &rhs){
-	if( this != &rhs ){
+    if( this != &rhs ){
         this->w0 = rhs.w0;
         this->w = rhs.w;
         
         //Copy the base variables
         copyBaseVariables( (Regressifier*)&rhs );
-	}
-	return *this;
+    }
+    return *this;
 }
 
 bool LinearRegression::deepCopyFrom(const Regressifier *regressifier){
@@ -63,7 +62,7 @@ bool LinearRegression::deepCopyFrom(const Regressifier *regressifier){
     if( this->getRegressifierType() == regressifier->getRegressifierType() ){
         
         const LinearRegression *ptr = dynamic_cast<const LinearRegression*>(regressifier);
-
+        
         this->w0 = ptr->w0;
         this->w = ptr->w;
         
@@ -82,12 +81,12 @@ bool LinearRegression::train_(RegressionData &trainingData){
     trainingResults.clear();
     
     if( M == 0 ){
-        errorLog << "train_(RegressionData &trainingData) - Training data has zero samples!" << endl;
+        errorLog << "train_(RegressionData &trainingData) - Training data has zero samples!" << std::endl;
         return false;
     }
     
     if( K == 0 ){
-        errorLog << "train_(RegressionData &trainingData) - The number of target dimensions is not 1!" << endl;
+        errorLog << "train_(RegressionData &trainingData) - The number of target dimensions is not 1!" << std::endl;
         return false;
     }
     
@@ -97,16 +96,16 @@ bool LinearRegression::train_(RegressionData &trainingData){
     targetVectorRanges.clear();
     
     //Scale the training and validation data, if needed
-	if( useScaling ){
-		//Find the ranges for the input data
+    if( useScaling ){
+        //Find the ranges for the input data
         inputVectorRanges = trainingData.getInputRanges();
         
         //Find the ranges for the target data
-		targetVectorRanges = trainingData.getTargetRanges();
+        targetVectorRanges = trainingData.getTargetRanges();
         
-		//Scale the training data
-		trainingData.scale(inputVectorRanges,targetVectorRanges,0.0,1.0);
-	}
+        //Scale the training data
+        trainingData.scale(inputVectorRanges,targetVectorRanges,0.0,1.0);
+    }
     
     //Reset the weights
     Random rand;
@@ -115,13 +114,13 @@ bool LinearRegression::train_(RegressionData &trainingData){
     for(UINT j=0; j<N; j++){
         w[j] = rand.getRandomNumberUniform(-0.1,0.1);
     }
-
-    double error = 0;
-    double lastError = 0;
-    double delta = 0;
+    
+    Float error = 0;
+    Float lastError = 0;
+    Float delta = 0;
     UINT iter = 0;
     bool keepTraining = true;
-    vector< UINT > randomTrainingOrder(M);
+    Vector< UINT > randomTrainingOrder(M);
     TrainingResult result;
     trainingResults.reserve(M);
     
@@ -144,9 +143,9 @@ bool LinearRegression::train_(RegressionData &trainingData){
             UINT i = randomTrainingOrder[m];
             
             //Compute the error, given the current weights
-            VectorDouble x = trainingData[i].getInputVector();
-            VectorDouble y = trainingData[i].getTargetVector();
-            double h = w0;
+            VectorFloat x = trainingData[i].getInputVector();
+            VectorFloat y = trainingData[i].getTargetVector();
+            Float h = w0;
             for(UINT j=0; j<N; j++){
                 h += x[j] * w[j];
             }
@@ -170,7 +169,7 @@ bool LinearRegression::train_(RegressionData &trainingData){
         }
         
         if( grt_isinf( totalSquaredTrainingError ) || grt_isnan( totalSquaredTrainingError ) ){
-            errorLog << "train_(RegressionData &trainingData) - Training failed! Total squared training error is NAN. If scaling is not enabled then you should try to scale your data and see if this solves the issue." << endl;
+            errorLog << "train_(RegressionData &trainingData) - Training failed! Total squared training error is NAN. If scaling is not enabled then you should try to scale your data and see if this solves the issue." << std::endl;
             return false;
         }
         
@@ -179,14 +178,14 @@ bool LinearRegression::train_(RegressionData &trainingData){
         }
         
         //Store the training results
-        rootMeanSquaredTrainingError = sqrt( totalSquaredTrainingError / double(M) );
-        result.setRegressionResult(iter,totalSquaredTrainingError,rootMeanSquaredTrainingError,this);
+        rmsTrainingError = sqrt( totalSquaredTrainingError / Float(M) );
+        result.setRegressionResult(iter,totalSquaredTrainingError,rmsTrainingError,this);
         trainingResults.push_back( result );
         
         //Notify any observers of the new result
         trainingResultsObserverManager.notifyObservers( result );
         
-        trainingLog << "Epoch: " << iter << " SSE: " << totalSquaredTrainingError << " Delta: " << delta << endl;
+        trainingLog << "Epoch: " << iter << " SSE: " << totalSquaredTrainingError << " Delta: " << delta << std::endl;
     }
     
     //Flag that the algorithm has been trained
@@ -195,19 +194,19 @@ bool LinearRegression::train_(RegressionData &trainingData){
     return trained;
 }
 
-bool LinearRegression::predict_(VectorDouble &inputVector){
+bool LinearRegression::predict_(VectorFloat &inputVector){
     
     if( !trained ){
-        errorLog << "predict_(VectorDouble &inputVector) - Model Not Trained!" << endl;
+        errorLog << "predict_(VectorFloat &inputVector) - Model Not Trained!" << std::endl;
         return false;
     }
     
     if( !trained ) return false;
     
-	if( inputVector.size() != numInputDimensions ){
-        errorLog << "predict_(VectorDouble &inputVector) - The size of the input vector (" << int( inputVector.size() ) << ") does not match the num features in the model (" << numInputDimensions << endl;
-		return false;
-	}
+    if( inputVector.size() != numInputDimensions ){
+        errorLog << "predict_(VectorFloat &inputVector) - The size of the input Vector (" << int( inputVector.size() ) << ") does not match the num features in the model (" << numInputDimensions << std::endl;
+        return false;
+    }
     
     if( useScaling ){
         for(UINT n=0; n<numInputDimensions; n++){
@@ -228,22 +227,22 @@ bool LinearRegression::predict_(VectorDouble &inputVector){
     
     return true;
 }
-    
-bool LinearRegression::saveModelToFile(fstream &file) const{
+
+bool LinearRegression::save( std::fstream &file ) const{
     
     if(!file.is_open())
-	{
-        errorLog << "loadModelFromFile(fstream &file) - The file is not open!" << endl;
-		return false;
-	}
+    {
+        errorLog << "save(fstream &file) - The file is not open!" << std::endl;
+        return false;
+    }
     
-	//Write the header info
+    //Write the header info
     file<<"GRT_LINEAR_REGRESSION_MODEL_FILE_V2.0\n";
     
     //Write the regressifier settings to the file
     if( !Regressifier::saveBaseSettingsToFile(file) ){
-        errorLog <<"saveModelToFile(fstream &file) - Failed to save Regressifier base settings to file!" << endl;
-		return false;
+        errorLog <<"save(fstream &file) - Failed to save Regressifier base settings to file!" << std::endl;
+        return false;
     }
     
     if( trained ){
@@ -252,19 +251,19 @@ bool LinearRegression::saveModelToFile(fstream &file) const{
         for(UINT j=0; j<numInputDimensions; j++){
             file << " " << w[j];
         }
-        file << endl;
+        file << std::endl;
     }
     
     return true;
 }
-    
-bool LinearRegression::loadModelFromFile(fstream &file){
+
+bool LinearRegression::load( std::fstream &file ){
     
     clear();
     
     if(!file.is_open())
     {
-        errorLog << "loadModelFromFile( fstream &file ) - Could not open file to load model" << endl;
+        errorLog << "load( fstream &file ) - Could not open file to load model" << std::endl;
         return false;
     }
     
@@ -279,35 +278,35 @@ bool LinearRegression::loadModelFromFile(fstream &file){
     }
     
     if( word != "GRT_LINEAR_REGRESSION_MODEL_FILE_V2.0" ){
-        errorLog << "loadModelFromFile( fstream &file ) - Could not find Model File Header" << endl;
+        errorLog << "load( fstream &file ) - Could not find Model File Header" << std::endl;
         return false;
     }
     
     //Load the regressifier settings from the file
     if( !Regressifier::loadBaseSettingsFromFile(file) ){
-        errorLog <<"loadModelFromFile( fstream &file ) - Failed to save Regressifier base settings to file!" << endl;
-		return false;
+        errorLog <<"load( fstream &file ) - Failed to save Regressifier base settings to file!" << std::endl;
+        return false;
     }
     
     if( trained ){
-    
+        
         //Resize the weights
         w.resize(numInputDimensions);
         
         //Load the weights
         file >> word;
         if(word != "Weights:"){
-            errorLog << "loadModelFromFile( fstream &file ) - Could not find the Weights!" << endl;
+            errorLog << "load( fstream &file ) - Could not find the Weights!" << std::endl;
             return false;
         }
         
         file >> w0;
         for(UINT j=0; j<numInputDimensions; j++){
             file >> w[j];
-        
+            
         }
     }
-
+    
     return true;
 }
 
@@ -318,28 +317,28 @@ bool LinearRegression::setMaxNumIterations(const UINT maxNumIterations){
 UINT LinearRegression::getMaxNumIterations() const{
     return getMaxNumEpochs();
 }
+
+bool LinearRegression::loadLegacyModelFromFile( std::fstream &file ){
     
-bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
-    
-    string word;
+    std::string word;
     
     file >> word;
     if(word != "NumFeatures:"){
-        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find NumFeatures!" << endl;
+        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find NumFeatures!" << std::endl;
         return false;
     }
     file >> numInputDimensions;
     
     file >> word;
     if(word != "NumOutputDimensions:"){
-        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find NumOutputDimensions!" << endl;
+        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find NumOutputDimensions!" << std::endl;
         return false;
     }
     file >> numOutputDimensions;
     
     file >> word;
     if(word != "UseScaling:"){
-        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find UseScaling!" << endl;
+        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find UseScaling!" << std::endl;
         return false;
     }
     file >> useScaling;
@@ -354,7 +353,7 @@ bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
         file >> word;
         if(word != "InputVectorRanges:"){
             file.close();
-            errorLog << "loadLegacyModelFromFile( fstream &file ) - Failed to find InputVectorRanges!" << endl;
+            errorLog << "loadLegacyModelFromFile( fstream &file ) - Failed to find InputVectorRanges!" << std::endl;
             return false;
         }
         for(UINT j=0; j<inputVectorRanges.size(); j++){
@@ -365,7 +364,7 @@ bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
         file >> word;
         if(word != "OutputVectorRanges:"){
             file.close();
-            errorLog << "loadLegacyModelFromFile( fstream &file ) - Failed to find OutputVectorRanges!" << endl;
+            errorLog << "loadLegacyModelFromFile( fstream &file ) - Failed to find OutputVectorRanges!" << std::endl;
             return false;
         }
         for(UINT j=0; j<targetVectorRanges.size(); j++){
@@ -380,7 +379,7 @@ bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
     //Load the weights
     file >> word;
     if(word != "Weights:"){
-        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find the Weights!" << endl;
+        errorLog << "loadLegacyModelFromFile( fstream &file ) - Could not find the Weights!" << std::endl;
         return false;
     }
     
@@ -390,7 +389,7 @@ bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
         
     }
     
-    //Resize the regression data vector
+    //Resize the regression data Vector
     regressionData.resize(1,0);
     
     //Flag that the model has been trained
@@ -399,5 +398,4 @@ bool LinearRegression::loadLegacyModelFromFile( fstream &file ){
     return true;
 }
 
-} //End of namespace GRT
-
+GRT_END_NAMESPACE
