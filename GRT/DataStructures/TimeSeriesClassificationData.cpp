@@ -1051,8 +1051,8 @@ Vector<MinMax> TimeSeriesClassificationData::getRanges() const {
 
     if( totalNumSamples > 0 ){
         for(UINT j=0; j<numDimensions; j++){
-            ranges[j].minValue = data[0][0][0];
-            ranges[j].maxValue = data[0][0][0];
+            ranges[j].minValue = data[0][0][j];
+            ranges[j].maxValue = data[0][0][j];
             for(UINT x=0; x<totalNumSamples; x++){
                 for(UINT i=0; i<data[x].getLength(); i++){
                     if( data[x][i][j] < ranges[j].minValue ){ ranges[j].minValue = data[x][i][j]; }		//Search for the min value
