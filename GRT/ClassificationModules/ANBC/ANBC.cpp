@@ -285,7 +285,6 @@ bool ANBC::clear(){
     Classifier::clear();
     
     //Clear the ANBC model
-    weightsData.clear();
     models.clear();
     
     return true;
